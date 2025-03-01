@@ -1,0 +1,38 @@
+---
+- name: Create directory structure for eth home staker
+  become_user: root
+  become: true
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "root"
+    group: "root"
+    mode: "0755"
+  with_items:
+    - "{{ host_config_mount }}"
+    - "{{ host_data_mount }}"
+
+# Set docker ports
+- name: Set execution docker ports
+  ansible.builtin.set_fact:
+    eth_ansible_execution_1_docker_ports: "{{ eth_ansible_execution_1_docker_ports }}"
+
+- name: Start eth-ansible-execution-1 container
+  become_user: root
+  become: true
+  community.docker.docker_container:
+    name: "{{ execution_docker_container_name }}"
+    image: "{{ nethermind_image }}"
+    state: started
+    memory: "{{ eth_ansible_execution_1_docker_memory }}"
+    memory_swap: "{{ eth_ansible_execution_1_docker_memory }}"
+    restart_policy: unless-stopped
+    networks:
+      - name: "eth-staking-network-net"
+    networks_cli_compatible: true
+    ports: "{{ eth_ansible_execution_1_docker_ports }}"
+    volumes:
+      - "{{ host_config_mount }}:/root/.nethermind"
+      - "{{ host_data_mount }}:/root/data"
+    command: >
+      --datadir "/data"   --config {{ network }}   --Init.WebSocketsEnabled true   --JsonRpc.Enabled true   --JsonRpc.Host "0.0.0.0"   --JsonRpc.Port 8545   --JsonRpc.EnginePort 8551   --JsonRpc.EngineHost "0.0.0.0"   --JsonRpc.EnabledModules "[\"admin\",\"eth\",\"subscribe\",\"net\",\"web3\",\"txpool\",\"debug\"]"   --JsonRpc.JwtSecretFile "/exec_token/token"   --Network.P2PPort 30303

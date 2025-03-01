@@ -1,0 +1,29 @@
+---
+role: core
+config: "{{ role }}.config"
+
+# Set docker container mem limit to 75% of available machine memory
+eth_ansible_execution_1_docker_memory: "{{ (ansible_memory_mb.real.total * 0.45) | round | int }}M"
+
+
+# execution ports
+eth_ansible_execution_1_p2p_port: 30303
+eth_ansible_execution_1_engine_port: 8551
+eth_ansible_execution_1_rpc_port: 8545
+eth_ansible_execution_1_websocket_port: 8546
+
+# host / docker mounts (override if neccessary)
+host_config_mount: /root/.nethermind/exec_token
+host_data_mount: /root/.nethermind/data/
+
+docker_config_mount: /root/.nethermind
+docker_data_mount: /data
+
+host_config_files:
+  - config.toml
+
+# core docker ports
+eth_ansible_execution_1_docker_ports:
+  - "{{ eth_ansible_execution_1_p2p_port }}:{{ eth_ansible_execution_1_p2p_port }}"
+  - "{{ eth_ansible_execution_1_rpc_port }}:{{ eth_ansible_execution_1_rpc_port }}"
+  - "{{ eth_ansible_execution_1_engine_port }}:{{ eth_ansible_execution_1_engine_port }}"
