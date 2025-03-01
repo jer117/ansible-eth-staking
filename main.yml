@@ -1,0 +1,28 @@
+---
+- hosts: all
+
+  tasks:
+    - name: Load secret variables
+      ansible.builtin.include_vars: secrets.yml
+      tags: [always]
+
+    - name: Include main vars
+      ansible.builtin.include_vars: main.yml
+      tags: [always]
+
+    - name: Include default vars
+      ansible.builtin.include_vars: defaults/main.yml
+      tags: [always]
+
+    - name: Create Docker network
+      docker_network:
+        name: eth-staking-network-net
+        state: present
+
+    - name: Include task core
+      ansible.builtin.import_tasks: tasks/nethermind.yml
+      tags: core
+
+    # - name: Include task monitoring
+    #   include_tasks: tasks/monitoring.yml
+    #   tags: monitoring  

@@ -1,0 +1,20 @@
+---
+galaxy_info:
+  galaxy_tags: []
+  namespace: jer117 
+  role_name: core
+  author: jer117.
+  description: Role to install an eth home staking node
+  company: jer117.
+  license: license private
+  min_ansible_version: "2.4"
+
+  platforms:
+    - name: Ubuntu
+      versions:
+        - focal
+        - jammy
+
+dependencies:
+  []
+

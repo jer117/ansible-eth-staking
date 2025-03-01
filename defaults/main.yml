@@ -1,0 +1,6 @@
+---
+# Docker Images
+# ansible-eth-staking vars
+execution_docker_container_name: "eth-ansible-execution-1"
+
+nethermind_image: "jer117/docker-eth-nethermind:1.31.2"
