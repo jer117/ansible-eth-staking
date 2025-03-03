@@ -1,0 +1,52 @@
+---
+- name: Check if cluster lock exists
+  become: false
+  ansible.builtin.stat:
+    path: "{{ host_config_mount }}/charon/.charon/cluster-lock.json"
+  register: cluster_lock
+
+- name: Copy private key to destinition
+  ansible.builtin.copy:
+    content: "{{ charon_enr_private_key }}"
+    dest: "{{ host_config_mount }}/charon/.charon/charon-enr-private-key"
+    owner: "root"
+    group: "root"
+    mode: "0600"
+  no_log: true
+
+- name: Run dkg
+  ansible.builtin.command: docker run --rm --user 7008:7008 -v "{{ host_config_mount }}/charon/:/opt/charon" "{{ charon_docker_image }}" dkg
+  become: true
+  become_user: root
+  async: 500
+  poll: 5
+  when: (cluster_definition_exists.stat.exists and not cluster_lock.stat.exists and ansible_play_batch|length >= 3)
+  register: dkg_run
+
+- name: Start/Restart the Charon client docker container
+  community.general.docker_container:
+    image: "{{ charon_docker_image }}"
+    keep_volumes: true
+    name: "{{ charon_container_name }}"
+    network_mode: bridge
+    networks:
+      - name: "eth-staking-network-net"
+    env:
+      CHARON_BEACON_NODE_ENDPOINTS: http://{{ consensus_container_name }}:{{ consensus_client_http_api_port }}
+      CHARON_LOG_LEVEL: info
+      CHARON_LOG_FORMAT: console
+      CHARON_P2P_RELAYS: "{{ charon_relay_address }}"
+      CHARON_P2P_EXTERNAL_HOSTNAME: ""
+      CHARON_P2P_TCP_ADDRESS: "0.0.0.0:{{ charon_p2p_tcp_port }}"
+      CHARON_VALIDATOR_API_ADDRESS: "0.0.0.0:{{ charon_validator_api_port }}"
+      CHARON_MONITORING_ADDRESS: "0.0.0.0:{{ charon_monitoring_port }}"
+      CHARON_BUILDER_API: "false"
+    published_ports:
+      - "{{ charon_p2p_tcp_port }}:{{ charon_p2p_tcp_port }}"
+      - 127.0.0.1:{{ charon_monitoring_port }}:{{ charon_monitoring_port }}
+    restart_policy: always
+    state: started
+    volumes:
+      - "/data:/data/:rw"
+      - "{{ host_config_mount }}/charon/:/opt/charon"
+  when: cluster_definition_exists.stat.exists and cluster_lock.stat.exists

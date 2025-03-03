@@ -9,8 +9,8 @@
     group: "root"
     mode: "0755"
   with_items:
-    - "{{ host_config_mount }}"
-    - "{{ host_data_mount }}"
+    - "{{ execution_config_mount }}"
+    - "{{ execution_data_mount }}"
 
 # Set docker ports
 - name: Set execution docker ports
@@ -32,7 +32,7 @@
     networks_cli_compatible: true
     ports: "{{ eth_ansible_execution_1_docker_ports }}"
     volumes:
-      - "{{ host_config_mount }}:/root/.nethermind"
-      - "{{ host_data_mount }}:/root/data"
+      - "{{ execution_config_mount }}:/root/.nethermind"
+      - "{{ execution_data_mount }}:/root/data"
     command: >
       --datadir "/data"   --config {{ network }}   --Init.WebSocketsEnabled true   --JsonRpc.Enabled true   --JsonRpc.Host "0.0.0.0"   --JsonRpc.Port 8545   --JsonRpc.EnginePort 8551   --JsonRpc.EngineHost "0.0.0.0"   --JsonRpc.EnabledModules "[\"admin\",\"eth\",\"subscribe\",\"net\",\"web3\",\"txpool\",\"debug\"]"   --JsonRpc.JwtSecretFile "/exec_token/token"   --Network.P2PPort 30303

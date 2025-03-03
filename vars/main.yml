@@ -12,12 +12,56 @@ eth_ansible_execution_1_engine_port: 8551
 eth_ansible_execution_1_rpc_port: 8545
 eth_ansible_execution_1_websocket_port: 8546
 
-# host / docker mounts (override if neccessary)
-host_config_mount: /root/.nethermind/exec_token
-host_data_mount: /root/.nethermind/data/
+# Execution / docker mounts (override if neccessary)
+execution_config_mount: /root/.nethermind/exec_token
+execution_data_mount: /root/.nethermind/data/
+
+# Consensus / docker mounts (override if neccessary)
+consensus_config_mount: /root/.lighthouse/config
+consensus_data_mount: /root/.lighthouse/data/
 
 docker_config_mount: /root/.nethermind
 docker_data_mount: /data
+
+# Consensus variables
+# Prysm consensus Client
+consensus_container_name: consensus
+consensus_monitoring_port: 8080
+consensus_client_http_api_port: 3500
+consensus_client_rpc_port: 4000
+consensus_client_p2p_port: 13000
+consensus_client_udp_port: 12000
+
+# Geth Execution Layer Client
+execution_data_dir: "/data/execution"
+execution_container_name: execution
+execution_rpc_port: 8545
+execution_websocket_port: 8546
+execution_p2p_port: 30303
+execution_legacy_discovery_port: 30303
+execution_discovery_port: 30304
+letsencrypt_port: 80
+execution_monitoring_port: 6060
+execution_auth_port: 8551
+
+# Charon variables
+charon_p2p_tcp_port: 3610
+charon_validator_api_port: 3600
+charon_monitoring_port: 3620
+charon_container_name: charon
+charon_relay_address: https://0.relay.obol.tech
+
+# lodestar validator configs
+validator_monitoring_port: 5064
+validator_container_name: validator
+
+# mev
+mev_boost_enabled: "false"
+mev_enabled: "{{ mev_boost_enabled }}"
+mev_boost_container_name: mev-boost
+mev_nework_name: "{{ network }}"
+mev_boost_api_port: 18550
+
 
 host_config_files:
   - config.toml
@@ -27,3 +71,8 @@ eth_ansible_execution_1_docker_ports:
   - "{{ eth_ansible_execution_1_p2p_port }}:{{ eth_ansible_execution_1_p2p_port }}"
   - "{{ eth_ansible_execution_1_rpc_port }}:{{ eth_ansible_execution_1_rpc_port }}"
   - "{{ eth_ansible_execution_1_engine_port }}:{{ eth_ansible_execution_1_engine_port }}"
+
+consensus_monitoring_port: 8081
+consensus_client_http_api_port: 5062
+validator_published_ports:
+  - 127.0.0.1:{{ consensus_client_http_api_port }}:{{ consensus_client_http_api_port }}

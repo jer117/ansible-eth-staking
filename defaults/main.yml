@@ -2,5 +2,38 @@
 # Docker Images
 # ansible-eth-staking vars
 execution_docker_container_name: "eth-ansible-execution-1"
+consensus_docker_container_name: "eth-ansible-consensus-1"
+validator_docker_container_name: "eth-ansible-validator-1"
 
+# Execution Clients
 nethermind_image: "jer117/docker-eth-nethermind:1.31.2"
+geth_image: "consensus-shipyard/geth:v1.13.1"
+
+# Consensus Clients
+lighthouse_image: "jer117/docker-eth2-lighthouse:v7.0.0-beta.1"
+
+prysm_image: "gcr.io/prysmaticlabs/prysm/beacon-chain:v4.1.0"
+
+lodestar_image: "chainsafe/lodestar:v1.11.3"
+
+charon_docker_image: "obolnetwork/charon:v0.17.1" 
+
+nimbus_image: "status-im/nimbus-eth2:v25.1"
+
+teku_image: "consensus-shipyard/teku:25.1.0"
+
+# Directories
+host_config_mount: ".eth-staking"
+consensus_data_dir: "/data/consensus"
+consensus_config_dir: "{{ host_config_mount }}/config/consensus"
+scripts_dir: /usr/local/bin
+
+# Consensus/Execution network
+execution:
+  networks:
+    mainnet: mainnet
+    prater: goerli
+    sepolia: sepolia
+    holesky: holesky
+
+is_leader: "{{ is_leader | default(false) }}"
