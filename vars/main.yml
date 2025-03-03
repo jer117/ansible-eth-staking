@@ -12,9 +12,13 @@ eth_ansible_execution_1_engine_port: 8551
 eth_ansible_execution_1_rpc_port: 8545
 eth_ansible_execution_1_websocket_port: 8546
 
-# host / docker mounts (override if neccessary)
-host_config_mount: /root/.nethermind/exec_token
-host_data_mount: /root/.nethermind/data/
+# Execution / docker mounts (override if neccessary)
+execution_config_mount: /root/.nethermind/exec_token
+execution_data_mount: /root/.nethermind/data/
+
+# Consensus / docker mounts (override if neccessary)
+consensus_config_mount: /root/.lighthouse/config
+consensus_data_mount: /root/.lighthouse/data/
 
 docker_config_mount: /root/.nethermind
 docker_data_mount: /data
@@ -27,3 +31,8 @@ eth_ansible_execution_1_docker_ports:
   - "{{ eth_ansible_execution_1_p2p_port }}:{{ eth_ansible_execution_1_p2p_port }}"
   - "{{ eth_ansible_execution_1_rpc_port }}:{{ eth_ansible_execution_1_rpc_port }}"
   - "{{ eth_ansible_execution_1_engine_port }}:{{ eth_ansible_execution_1_engine_port }}"
+
+consensus_monitoring_port: 8081
+consensus_client_http_api_port: 5062
+validator_published_ports:
+  - 127.0.0.1:{{ consensus_client_http_api_port }}:{{ consensus_client_http_api_port }}
