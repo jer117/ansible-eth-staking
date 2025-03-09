@@ -1,0 +1,48 @@
+---
+- name: Create Charon directory
+  become: true
+  ansible.builtin.file:
+    path: "{{ item }}/charon/.charon"
+    owner: "root"
+    group: "root"
+    state: directory
+    mode: "0755"
+  with_items:
+    - "{{ host_config_mount }}"
+    - "/data"
+
+# Create DKG
+- name: Create DKG
+  block:
+    - name: Check if cluster definition file exists
+      ansible.builtin.stat:
+        path: "{{ host_config_mount }}/charon/.charon/cluster-definition.json"
+      register: cluster_definition_exists
+
+    - name: Template dkg config file
+      become: true
+      ansible.builtin.template:
+        src: .env.create_dkg
+        dest: "{{ host_config_mount }}/charon/.charon/"
+        owner: "root"
+        group: "root"
+        mode: "0755"
+      with_items:
+        - "{{ host_config_mount }}"
+        - "/data"
+      when: (is_leader and not cluster_definition_exists.stat.exists)
+
+    # Create DKG (only done by the leader)
+    - name: Create dkg
+      become: true
+      become_user: root
+      ansible.builtin.command:
+        cmd: >-
+          docker run --rm --user 7008:7008
+            -v "{{ host_config_mount }}/charon/:/opt/charon"
+            --env-file {{ host_config_mount }}/charon/.charon/.env.create_dkg
+            "{{ charon_docker_image }}" create dkg
+            --network "{{ execution.networks[network] }}"
+
+      register: enr_public_key
+      when: (is_leader and not cluster_definition_exists.stat.exists)

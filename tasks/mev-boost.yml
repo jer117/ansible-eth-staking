@@ -1,0 +1,20 @@
+---
+- name: Start mev boost
+  become: true
+  become_user: "root"
+  community.general.docker_container:
+    name: "{{ mev_boost_container_name }}"
+    image: "{{ mev_boost_docker_image }}"
+    user: 7010:7010
+    networks_cli_compatible: true
+    state: started
+    networks:
+      - name: "eth-staking-network-net"
+
+    # yamllint disable rule:line-length
+    command: >
+      -"{{ network }}"
+      -relays "{{ mev_boost_relays }}"
+      -loglevel debug
+      --addr "0.0.0.0:{{ mev_boost_api_port }}"
+    # yamllint enable rule:line-length

@@ -19,10 +19,37 @@
         name: eth-staking-network-net
         state: present
 
-    - name: Include task core
+    - name: Include task execution
       ansible.builtin.import_tasks: tasks/nethermind.yml
-      tags: core
+      tags: [execution]
 
-    # - name: Include task monitoring
-    #   include_tasks: tasks/monitoring.yml
-    #   tags: monitoring  
+    # - name: Import charon_leader role
+    #   ansible.builtin.import_tasks: tasks/charon_leader.yml
+    #   tags: [charon-leader]
+
+    # - name: Import charon
+    #   ansible.builtin.import_tasks: tasks/charon.yml
+    #   tags: [charon]
+
+    - name: Import Consensus
+      ansible.builtin.import_tasks: tasks/lighthouse.yml
+      tags: [consensus]
+
+    - name: Install Cadvisor
+      ansible.builtin.import_tasks: tasks/cadvisor.yml
+      tags: cadvisor, always
+
+    - name: Include task monitoring
+      ansible.builtin.import_tasks: tasks/monitoring.yml
+      tags: monitoring
+
+    - name: Import mev-boost tasks
+      ansible.builtin.import_tasks: tasks/mev-boost.yml
+      when: (mev_enabled)
+      tags: [mev]
+
+  handlers:
+    - name: reload cadvisor
+      systemd:
+        name: cadvisor.service
+        state: restarted  
