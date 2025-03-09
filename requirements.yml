@@ -1,0 +1,48 @@
+---
+roles:
+  - name: geerlingguy.docker
+    version: 6.1.0
+
+collections:
+  - name: community.docker
+    version: 3.4.0
+
+# External documentation references
+references:
+  # Core Ethereum Documentation
+  - url: https://ethereum.org/en/developers/docs/
+    description: "Ethereum Developer Documentation"
+  - url: https://ethereum.org/en/staking/
+    description: "Ethereum Staking Documentation"
+  
+  # Client Documentation
+  - url: https://docs.prylabs.network/docs/getting-started
+    description: "Prysm Client Documentation"
+  - url: https://lighthouse-book.sigmaprime.io/
+    description: "Lighthouse Client Documentation"
+  - url: https://docs.teku.consensys.net/
+    description: "Teku Client Documentation"
+  - url: https://nimbus.guide/
+    description: "Nimbus Client Documentation"
+  
+  # Reference Implementations
+  - url: https://github.com/eth-educators/eth-docker
+    description: "Eth Docker - Reference Docker Implementation"
+  - url: https://github.com/nethermindeth/docker-eth-nethermind
+    description: "Nethermind Docker Image"
+  - url: https://github.com/sigp/lighthouse
+    description: "Lighthouse Docker Image"
+  
+  # Infrastructure & Tools
+  - url: https://docs.docker.com/compose/
+    description: "Docker Compose Documentation"
+  - url: https://grafana.com/docs/
+    description: "Grafana Documentation"
+  - url: https://prometheus.io/docs/
+    description: "Prometheus Documentation"
+  
+  # Security & Best Practices
+  - url: https://ethereum.org/en/security/
+    description: "Ethereum Security Best Practices"
+  - url: https://docs.docker.com/engine/security/
+    description: "Docker Security Documentation"

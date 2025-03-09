@@ -1,0 +1,9 @@
+---
+- hosts: ethereum_nodes
+  become: true
+  roles:
+    - role: ethereum
+      vars:
+        ethereum_execution_client: nethermind
+        ethereum_consensus_client: lighthouse
+        ethereum_enable_monitoring: true 

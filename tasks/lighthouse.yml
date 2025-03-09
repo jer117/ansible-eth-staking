@@ -1,0 +1,60 @@
+---
+- name: Create directory structure for eth beacon node
+  become_user: "root"
+  become: true
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "root"
+    group: "root"
+    mode: "0755"
+  with_items:
+    - "{{ consensus_config_mount }}"
+    - "{{ consensus_data_mount }}"
+    - "{{ consensus_config_mount }}/exec_token"
+
+# Set docker ports
+- name: Set beacon node docker ports
+  ansible.builtin.set_fact:
+    beacon_published_ports: "{{ beacon_published_ports }}"
+
+- name: Start/Restart the beacon client docker container
+  become: true
+  community.docker.docker_container:
+    user: "root"
+    tls: true
+    tls_verify: true
+    tls_hostname: registry.gitlab.com
+    image: "{{ lighthouse_image }}"
+    keep_volumes: true
+    name: "{{ consensus_docker_container_name }}"
+    network_mode: bridge
+    networks:
+      - name: "eth-staking-network-net"
+    published_ports: "{{ beacon_published_ports }}"
+    restart: true
+    restart_policy: unless-stopped
+    state: started
+    volumes:
+      - "{{ consensus_config_mount }}:/config/:rw"
+      - "{{ consensus_data_mount }}:/data"
+      - "{{ consensus_jwt_secret_mount }}:/exec_token"
+    command: >
+      lighthouse bn
+      --datadir /data
+      --http
+      --http-port {{ consensus_client_http_api_port }}
+      --http-address "0.0.0.0"
+      --http-allow-origin "*"
+      --listen-address 0.0.0.0
+      --port {{ consensus_p2p_port | default('9000') }}
+      --quic-port {{ consensus_quic_port | default('9001') }}
+      --target-peers {{ consensus_target_peers | default('100') }}
+      --execution-endpoint http://{{ execution_docker_container_name }}:8551
+      --execution-jwt "/exec_token/token"
+      --debug-level info
+      --metrics
+      --metrics-address 0.0.0.0
+      --metrics-port {{ consensus_monitoring_port }}
+      --suggested-fee-recipient {{ withdrawal_account_address }}
+      --network {{ network }}
