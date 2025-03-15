@@ -1,0 +1,55 @@
+---
+- name: Create directory structure for validator client
+  become_user: "root"
+  become: true
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "root"
+    group: "root"
+    mode: "0755"
+  with_items:
+    - "{{ validator_keys_mount }}/keys"
+    - "{{ validator_keys_mount }}/passwords"
+    - "{{ validator_data_mount }}"
+
+# Set docker ports
+- name: Set validator docker ports
+  ansible.builtin.set_fact:
+    validator_published_ports: "{{ validator_published_ports }}"
+
+- name: Start/Restart the validator client docker container
+  become: true
+  community.docker.docker_container:
+    user: "root"
+    image: "{{ lighthouse_image }}"
+    keep_volumes: true
+    name: "{{ validator_container_name }}"
+    network_mode: bridge
+    networks:
+      - name: "eth-staking-network-net"
+    published_ports: "{{ validator_published_ports }}"
+    restart: true
+    restart_policy: unless-stopped
+    state: started
+    volumes:
+      - "{{ validator_keys_mount }}/keys:/secrets/keys"
+      - "{{ validator_keys_mount }}/passwords:/secrets/passwords"
+      - "{{ validator_data_mount }}:/data"
+    command: >
+      lighthouse validator_client
+      --beacon-nodes http://{{ consensus_docker_container_name }}:{{ consensus_client_http_api_port }}
+      --validators-dir /secrets/keys
+      --secrets-dir /secrets/passwords
+      --graffiti "{{ validator_graffiti }}"
+      --suggested-fee-recipient {{ withdrawal_account_address }}
+      --init-slashing-protection
+      --http
+      --http-address 0.0.0.0
+      --unencrypted-http-transport
+      --http-port {{ validator_client_http_api_port }}
+      --http-allow-origin "*"
+      --metrics
+      --metrics-address 0.0.0.0
+      --metrics-port {{ validator_monitoring_port }}
+      --network {{ network }} 

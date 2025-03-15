@@ -5,6 +5,14 @@ config: "{{ role }}.config"
 # Set docker container mem limit to 75% of available machine memory
 eth_ansible_execution_1_docker_memory: "{{ (ansible_memory_mb.real.total * 0.45) | round | int }}M"
 
+# Validator Client Configuration
+validator_container_name: "{{ validator_docker_container_name }}"
+validator_keys_mount: "/root/.lighthouse/validators"
+validator_data_mount: "/root/.lighthouse/validator-data"
+validator_graffiti: "JerCoffeegang Staking"
+validator_client_http_api_port: 5064
+validator_monitoring_port: 8009
+withdrawal_address: "0xBC1eF09B6A48aAEEC6059Cf7E7936F4DD1eFE8cF"  # Replace with your ETH address
 
 # execution ports
 eth_ansible_execution_1_p2p_port: 30303
@@ -69,3 +77,7 @@ consensus_client_quic_port: 9001
 # Beacon Node published ports
 beacon_published_ports:
   - 127.0.0.1:{{ consensus_client_http_api_port }}:{{ consensus_client_http_api_port }}
+
+validator_published_ports:
+  - 127.0.0.1:{{ validator_client_http_api_port }}:{{ validator_client_http_api_port }}
+  - 127.0.0.1:{{ validator_monitoring_port }}:{{ validator_monitoring_port }}
