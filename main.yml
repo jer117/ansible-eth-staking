@@ -35,6 +35,10 @@
       ansible.builtin.import_tasks: tasks/lighthouse.yml
       tags: [consensus]
 
+    - name: Import Validator
+      ansible.builtin.import_tasks: tasks/validator.yml
+      tags: [validator]
+
     - name: Install Cadvisor
       ansible.builtin.import_tasks: tasks/cadvisor.yml
       tags: cadvisor, always

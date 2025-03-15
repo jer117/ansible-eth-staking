@@ -10,7 +10,7 @@ nethermind_image: "jer117/docker-eth-nethermind:1.31.2"
 geth_image: "consensus-shipyard/geth:v1.13.1"
 
 # Consensus Clients
-lighthouse_image: "sigp/lighthouse:v7.0.0-beta.2"
+lighthouse_image: "sigp/lighthouse:v7.0.0-beta.3"
 
 prysm_image: "gcr.io/prysmaticlabs/prysm/beacon-chain:v4.1.0"
 
