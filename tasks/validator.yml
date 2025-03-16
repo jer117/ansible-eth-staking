@@ -13,6 +13,28 @@
     - "{{ validator_keys_mount }}/passwords"
     - "{{ validator_data_mount }}"
 
+# This is done manually
+# - name: Copy validator keystores
+#   become: true
+#   ansible.builtin.copy:
+#     content: "{{ item.keystore_content | default(omit) }}"
+#     src: "{{ item.keystore_file | default(omit) }}"
+#     dest: "{{ validator_keys_mount }}/keystores/{{ item.keystore_file | basename }}"
+#     owner: "root"
+#     group: "root"
+#     mode: "0600"
+#   with_items: "{{ validators }}"
+#   when: validators is defined
+
+- name: Create validator_definitions.yml
+  become: true
+  ansible.builtin.template:
+    src: templates/validator_definitions.yml.j2
+    dest: "{{ validator_keys_mount }}/keys/validator_definitions.yml"
+    owner: "root"
+    group: "root"
+    mode: "0600"
+
 # Set docker ports
 - name: Set validator docker ports
   ansible.builtin.set_fact:
@@ -33,14 +55,14 @@
     restart_policy: unless-stopped
     state: started
     volumes:
-      - "{{ validator_keys_mount }}/keys:/secrets/keys"
-      - "{{ validator_keys_mount }}/passwords:/secrets/passwords"
+      - "{{ validator_keys_mount }}/keys:/validators/keys"
+      - "{{ validator_keys_mount }}/passwords:/validators/passwords"
       - "{{ validator_data_mount }}:/data"
     command: >
       lighthouse validator_client
       --beacon-nodes http://{{ consensus_docker_container_name }}:{{ consensus_client_http_api_port }}
-      --validators-dir /secrets/keys
-      --secrets-dir /secrets/passwords
+      --validators-dir /validators/keys
+      --secrets-dir /validators/passwords
       --graffiti "{{ validator_graffiti }}"
       --suggested-fee-recipient {{ withdrawal_account_address }}
       --init-slashing-protection
@@ -52,4 +74,5 @@
       --metrics
       --metrics-address 0.0.0.0
       --metrics-port {{ validator_monitoring_port }}
-      --network {{ network }} 
+      --network {{ network }}
+      --disable-auto-discover 

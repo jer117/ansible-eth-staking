@@ -39,7 +39,6 @@
     networks:
       - name: "eth-staking-network-net"
     published_ports: "{{ beacon_published_ports }}"
-    restart: true
     restart_policy: unless-stopped
     state: started
     volumes:

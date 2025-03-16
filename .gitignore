@@ -1,3 +1,4 @@
 secrets.yml
+validator_secrets.yml
 ansible.cfg
 inventory
