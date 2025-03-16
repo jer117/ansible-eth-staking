@@ -1,0 +1,8 @@
+---
+{% for validator in validators %}
+- enabled: {{ validator.enabled | default(true) | lower }}
+  voting_public_key: "{{ validator.public_key }}"
+  type: local_keystore
+  voting_keystore_path: "/validators/keys/{{ validator.keystore_file }}"
+  voting_keystore_password_path: "/validators/passwords/{{ validator.keystore_file | replace('.json', '') }}"
+{% endfor %}
