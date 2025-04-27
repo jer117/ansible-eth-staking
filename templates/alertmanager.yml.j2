@@ -1,0 +1,52 @@
+global:
+  resolve_timeout: 5m
+  {% if telegram_enabled | default(false) | bool %}
+  telegram_api_url: https://api.telegram.org
+
+route:
+  group_by: ['alertname', 'job']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  receiver: 'telegram-notifications'
+
+receivers:
+- name: 'telegram-notifications'
+  telegram_configs:
+  - bot_token: {{ telegram_bot_token }}
+    chat_id: {{ telegram_chat_id }}
+    parse_mode: 'HTML'
+    message: |
+      🚨 <b>{{ '{{' }} .Status | toUpper {{ '}}' }}</b> {{ '{{' }} .CommonLabels.alertname {{ '}}' }}
+      
+      <b>Description:</b> {{ '{{' }} .CommonAnnotations.description {{ '}}' }}
+      <b>Summary:</b> {{ '{{' }} .CommonAnnotations.summary {{ '}}' }}
+      <b>Severity:</b> {{ '{{' }} .CommonLabels.severity {{ '}}' }}
+      
+      <b>Details:</b>
+      {{ '{{' }} range .Alerts {{ '}}' }}
+        <b>Instance:</b> {{ '{{' }} .Labels.instance {{ '}}' }}
+        <b>Job:</b> {{ '{{' }} .Labels.job {{ '}}' }}
+        <b>Time:</b> {{ '{{' }} .StartsAt.Format "2006-01-02 15:04:05" {{ '}}' }}
+      {{ '{{' }} end {{ '}}' }}
+  {% else %}
+route:
+  group_by: ['alertname', 'job']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  receiver: 'web-hook'
+
+receivers:
+- name: 'web-hook'
+  webhook_configs:
+  - url: 'http://127.0.0.1:5001/'
+    send_resolved: true
+  {% endif %}
+
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'instance'] 

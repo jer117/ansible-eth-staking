@@ -34,7 +34,7 @@ ansible-playbook -i inventory.yaml main.yaml
 ```
 
 # How to generate validator keys.
-- https://holesky.launchpad.ethereum.org/en/generate-keys
+- https://hoodi.launchpad.ethereum.org/en/generate-keys
 - https://wagyu.gg/
 
 # Make sure you have SSH access to the node you want to use.

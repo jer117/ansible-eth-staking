@@ -14,6 +14,7 @@
     - "{{ consensus_config_mount }}/exec_token"
 
 - name: Generate JWT secret token
+  become_user: root
   become: true
   ansible.builtin.shell: |
     if [ ! -f "{{ consensus_config_mount }}/exec_token/token" ]; then
@@ -29,6 +30,7 @@
     beacon_published_ports: "{{ beacon_published_ports }}"
 
 - name: Start/Restart the beacon client docker container
+  become_user: root
   become: true
   community.docker.docker_container:
     user: "root"
@@ -66,8 +68,8 @@
       --network {{ network }}
       {% if network == "mainnet" %}
       --checkpoint-sync-url https://mainnet.checkpoint.sigp.io
-      {% elif network == "holesky" %}
-      --checkpoint-sync-url https://holesky.beaconstate.info
+      {% elif network == "hoodi" %}
+      --checkpoint-sync-url https://hoodi.beaconstate.info/
       {% elif network == "sepolia" %}
       --checkpoint-sync-url https://sepolia.checkpoint.sigp.io
       {% endif %}

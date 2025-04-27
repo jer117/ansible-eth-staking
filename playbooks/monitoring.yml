@@ -1,0 +1,13 @@
+---
+- name: Set up Ethereum monitoring stack
+  hosts: ethereum_nodes
+  become: true
+  vars_files:
+    - ../defaults/main.yml
+    - ../defaults/monitoring.yml
+    - ../vars/main.yml
+    - ../secrets.yml
+  
+  tasks:
+    - name: Include monitoring tasks
+      include_tasks: ../tasks/monitoring.yml 

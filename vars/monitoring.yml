@@ -1,0 +1,37 @@
+---
+# Monitoring Variables
+
+# Container names
+prometheus_name: "prometheus"
+alertmanager_name: "alertmanager"
+loki_name: "loki"
+node_exporter_name: "node-exporter"
+cadvisor_name: "cadvisor"
+grafana_name: "grafana"
+
+# Docker images
+prometheus_image: "prom/prometheus:latest"
+alertmanager_image: "prom/alertmanager:latest"
+loki_image: "grafana/loki:2.9.0"
+node_exporter_image: "prom/node-exporter:latest"
+cadvisor_image: "gcr.io/cadvisor/cadvisor:v0.47.0"
+grafana_image: "grafana/grafana:10.0.0"
+
+# Network ports
+prometheus_port: 9090
+alertmanager_port: 9093
+loki_port: 3100
+node_exporter_port: 9100
+cadvisor_port: 8080
+grafana_port: 3000
+
+# Telegram notifications (optional)
+telegram_enabled: false
+# telegram_bot_token: "YOUR_BOT_TOKEN"
+# telegram_chat_id: "YOUR_CHAT_ID"
+
+# Feature flags
+cadvisor_enabled: true
+
+# Security
+grafana_admin_password: "{{ GRAFANA_ADMIN_PASSWORD | default('admin') }}" 

@@ -1,153 +1,240 @@
 ---
-- name: Ensure home directory for root exists with correct permissions
-  file:
-    path: /root
-    state: directory
-    owner: root
-    group: root
-    mode: '0755'
+# Monitoring setup for Ethereum staking nodes using Prometheus, Grafana, Loki, Node Exporter, cAdvisor and Alert Manager
 
-- name: Create directory structure for monitoring
-  file:
+- name: Create monitoring directories
+  become: true
+  ansible.builtin.file:
     path: "{{ item }}"
     state: directory
-    owner: root
-    group: root
+    owner: "root"
+    group: "root"
     mode: "0755"
   with_items:
     - "{{ host_config_mount }}/prometheus"
     - "{{ host_config_mount }}/grafana"
-    - "{{ host_config_mount }}/grafana/agent"
+    - "{{ host_config_mount }}/loki"
+    - "{{ host_config_mount }}/alertmanager"
+    - "{{ host_config_mount }}/dashboards"
 
-- name: Task Copy helper scripts
-  become_user: root
+# Prometheus Configuration
+- name: Create Prometheus rules directory
   become: true
-  template:
-    src: datasource.yml
-    dest: "{{ host_config_mount }}/grafana/datasource.yml"
-    force: true
-    owner: "root"
-    group: "root"
-    mode: "0755"
-  with_items:
-    - datasource.yml
-
-- name: Task copy grafana-agent.yml
-  become_user: root
-  become: true
-  template:
-    src: grafana-agent.yml
-    dest: "{{ host_config_mount }}/grafana/grafana-agent.yml"
-    force: true
-    owner: "root"
-    group: "root"
-    mode: "0755"
-  with_items:
-    - grafana-agent.yml
-  register: graf_cfg
-
-- name: Task copy prometheus.yml
-  become_user: root
-  become: true
-  template:
-    src: prometheus.yml
-    dest: "{{ host_config_mount }}/prometheus/prometheus.yml"
-    force: true
-    owner: "root"
-    group: "root"
-    mode: "0755"
-  with_items:
-    - prometheus.yml
-  register: prom_cfg
-
-- name: Monitoring config changed
-  ansible.builtin.set_fact:
-    cfg_changed: "{{ prom_cfg.changed | bool or graf_cfg.changed | bool }}"
-
-- name: Create necessary directories
-  file:
-    path: "{{ item }}"
+  ansible.builtin.file:
+    path: "{{ host_config_mount }}/prometheus/rules"
     state: directory
-    owner: root
-    group: root
-  with_items:
-    - "{{ host_config_mount }}/monitoring"
+    owner: "root"
+    group: "root"
+    mode: "0755"
 
-- name: Start node exporter
+- name: Configure Prometheus
+  become: true
+  ansible.builtin.template:
+    src: templates/prometheus.yml.j2
+    dest: "{{ host_config_mount }}/prometheus/prometheus.yml"
+    owner: "root"
+    group: "root"
+    mode: "0644"
+
+# Node Exporter
+- name: Start Node Exporter container
   become_user: root
   become: true
   community.docker.docker_container:
     name: "{{ node_exporter_name }}"
-    image: prom/node-exporter:latest
+    image: "{{ node_exporter_image }}"
     state: started
-    pull: true
     restart_policy: unless-stopped
-    restart: "{{ cfg_changed }}"
+    network_mode: bridge
     networks:
       - name: "eth-staking-network-net"
-    networks_cli_compatible: true
-    privileged: true
-    ports:
-      - "127.0.0.1:9100:9100"
-
-- name: Start grafana agent
-  become_user: root
-  become: true
-  community.docker.docker_container:
-    name: grafana_agent
-    image: grafana/agent:v0.41.1
-    state: started
-    pull: true
-    restart_policy: unless-stopped
-    restart: "{{ cfg_changed }}"
-    networks:
-      - name: "eth-staking-network-net"
-    networks_cli_compatible: true
-    privileged: true
-    ports:
-      - "127.0.0.1:12345:12345"  # Replace with the actual port you want to expose, if necessary
+    published_ports:
+      - "127.0.0.1:{{ node_exporter_port }}:9100"
+    command: "--path.rootfs=/host"
     volumes:
-      - "{{ host_config_mount }}/grafana:/etc/agent"
-    command:
-      - --config.file=/etc/agent/grafana-agent.yml
-      - --server.http.address=0.0.0.0:12345
+      - "/:/host:ro,rslave"
 
-- name: Start prometheus container
+# cAdvisor
+- name: Start cAdvisor container
   become_user: root
   become: true
   community.docker.docker_container:
-    name: "{{prometheus_name}}"
-    image: prom/prometheus:latest
+    name: "{{ cadvisor_name }}"
+    image: "{{ cadvisor_image }}"
     state: started
-    pull: true
     restart_policy: unless-stopped
-    restart: "{{ cfg_changed }}"
+    privileged: true
+    network_mode: bridge
     networks:
       - name: "eth-staking-network-net"
-    networks_cli_compatible: true
-    privileged: true
-    ports:
-      - "9090:9090"
+    published_ports:
+      - "127.0.0.1:{{ cadvisor_port }}:8080"
     volumes:
-      - "{{ host_config_mount }}/prometheus:/etc/prometheus"
+      - "/:/rootfs:ro"
+      - "/var/run:/var/run:ro"
+      - "/sys:/sys:ro"
+      - "/var/lib/docker/:/var/lib/docker:ro"
+      - "/dev/disk/:/dev/disk:ro"
+  when: cadvisor_enabled | bool
 
-- name: Start grafana dashboard container
+# Loki
+- name: Generate Loki config
+  become_user: root
+  become: true
+  ansible.builtin.template:
+    src: templates/loki-config.yml.j2
+    dest: "{{ host_config_mount }}/loki/config.yml"
+    owner: "root" 
+    group: "root"
+    mode: "0644"
+
+- name: Start Loki container
   become_user: root
   become: true
   community.docker.docker_container:
-    name: grafana
-    image: grafana/grafana:latest
+    name: "{{ loki_name }}"
+    image: "{{ loki_image }}"
     state: started
-    pull: true
     restart_policy: unless-stopped
-    restart: "{{ cfg_changed }}"
+    network_mode: bridge
     networks:
       - name: "eth-staking-network-net"
-    networks_cli_compatible: true
-    privileged: true
-    ports:
-      - "3000:3000"
+    published_ports:
+      - "127.0.0.1:{{ loki_port }}:3100"
+    volumes:
+      - "{{ host_config_mount }}/loki:/loki"
+      - "{{ host_config_mount }}/loki/config.yml:/etc/loki/config.yml"
+    command: "-config.file=/etc/loki/config.yml"
+
+# Alertmanager
+- name: Generate Alertmanager config
+  become_user: root
+  become: true
+  ansible.builtin.template:
+    src: templates/alertmanager.yml.j2
+    dest: "{{ host_config_mount }}/alertmanager/alertmanager.yml"
+    owner: "root"
+    group: "root"
+    mode: "0644"
+
+- name: Start Alertmanager container
+  become_user: root
+  become: true
+  community.docker.docker_container:
+    name: "{{ alertmanager_name }}"
+    image: "{{ alertmanager_image }}"
+    state: started
+    restart_policy: unless-stopped
+    network_mode: bridge
+    networks:
+      - name: "eth-staking-network-net"
+    published_ports:
+      - "127.0.0.1:{{ alertmanager_port }}:9093"
+    volumes:
+      - "{{ host_config_mount }}/alertmanager:/alertmanager"
+    command: "--config.file=/alertmanager/alertmanager.yml --storage.path=/alertmanager"
+
+# Prometheus
+- name: Start Prometheus container
+  become_user: root
+  become: true
+  community.docker.docker_container:
+    name: "{{ prometheus_name }}"
+    image: "{{ prometheus_image }}"
+    state: started
+    restart_policy: unless-stopped
+    network_mode: bridge
+    networks:
+      - name: "eth-staking-network-net"
+    published_ports:
+      - "127.0.0.1:{{ prometheus_port }}:9090"
+    volumes:
+      - "{{ host_config_mount }}/prometheus:/prometheus"
+      - "{{ host_config_mount }}/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml"
+      - "{{ host_config_mount }}/prometheus/rules:/etc/prometheus/rules"
+    command: "--config.file=/etc/prometheus/prometheus.yml --storage.tsdb.path=/prometheus --web.console.libraries=/usr/share/prometheus/console_libraries --web.console.templates=/usr/share/prometheus/consoles --storage.tsdb.retention.time=15d"
+
+# Configure Prometheus alert rules
+- name: Configure Prometheus alert rules
+  become_user: root
+  become: true
+  ansible.builtin.template:
+    src: templates/alert_rules.yml.j2
+    dest: "{{ host_config_mount }}/prometheus/rules/alert_rules.yml"
+    owner: "root"
+    group: "root"
+    mode: "0644"
+
+# Copy Ethereum dashboards for Grafana
+- name: Copy Ethereum dashboards to Grafana
+  become_user: root
+  become: true
+  ansible.builtin.copy:
+    src: "files/dashboards/{{ item }}"
+    dest: "{{ host_config_mount }}/dashboards/{{ item }}"
+    owner: "root"
+    group: "root"
+    mode: "0644"
+  with_items:
+    - ethereum-validators-dashboard.json
+    - ethereum-consensus-client-dashboard.json
+    - ethereum-execution-client-dashboard.json
+    - system-monitoring-dashboard.json
+    - node-exporter-dashboard.json
+    - home_staking_dashboard.json
+
+# Configure Grafana provisioning
+- name: Create Grafana provisioning directories
+  become_user: root
+  become: true
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "root"
+    group: "root"
+    mode: "0755"
+  with_items:
+    - "{{ host_config_mount }}/grafana/provisioning/datasources"
+    - "{{ host_config_mount }}/grafana/provisioning/dashboards"
+
+- name: Configure Grafana datasources
+  become_user: root
+  become: true
+  ansible.builtin.template:
+    src: templates/grafana-datasources.yml.j2
+    dest: "{{ host_config_mount }}/grafana/provisioning/datasources/datasources.yml"
+    owner: "root"
+    group: "root"
+    mode: "0644"
+
+- name: Configure Grafana dashboard providers
+  become_user: root
+  become: true
+  ansible.builtin.template:
+    src: templates/grafana-dashboards.yml.j2
+    dest: "{{ host_config_mount }}/grafana/provisioning/dashboards/dashboards.yml"
+    owner: "root"
+    group: "root"
+    mode: "0644"
+
+# Start Grafana container
+- name: Start Grafana container
+  become_user: root
+  become: true
+  community.docker.docker_container:
+    name: "{{ grafana_name }}"
+    image: "{{ grafana_image }}"
+    state: started
+    restart_policy: unless-stopped
+    network_mode: bridge
+    networks:
+      - name: "eth-staking-network-net"
+    published_ports:
+      - "127.0.0.1:{{ grafana_port }}:3000"
     env:
-      GF_SECURITY_ADMIN_PASSWORD: "{{ GRAFANA_ADMIN_PASSWORD }}"
+      GF_SECURITY_ADMIN_PASSWORD: "{{ grafana_admin_password }}"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_USERS_ALLOW_SIGN_UP: "false"
     volumes:
-      - "{{ host_config_mount }}/grafana/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml"
+      - "{{ host_config_mount }}/grafana:/var/lib/grafana"
+      - "{{ host_config_mount }}/dashboards:/var/lib/grafana/dashboards"
+      - "{{ host_config_mount }}/grafana/provisioning:/etc/grafana/provisioning"
