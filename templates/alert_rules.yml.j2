@@ -1,0 +1,114 @@
+groups:
+  - name: ethereum_alerts
+    rules:
+      # System alerts
+      - alert: HighCPULoad
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 90
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage (instance {% raw %}{{ $labels.instance }}{% endraw %})"
+          description: "CPU load is > 90%\n  VALUE = {% raw %}{{ $value }}{% endraw %}%\n  LABELS = {% raw %}{{ $labels }}{% endraw %}"
+
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 90
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage (instance {% raw %}{{ $labels.instance }}{% endraw %})"
+          description: "Memory usage is > 90%\n  VALUE = {% raw %}{{ $value }}{% endraw %}%\n  LABELS = {% raw %}{{ $labels }}{% endraw %}"
+
+      # Additional Memory Alert
+      - alert: HighMemoryUsageEarly
+        expr: 100 - ((node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100) > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High Memory Usage on {% raw %}{{ $labels.instance }}{% endraw %}"
+          description: "Memory usage is above 85% (current value: {% raw %}{{ $value }}{% endraw %}%)"
+
+      - alert: HighDiskUsage
+        expr: (node_filesystem_size_bytes{fstype!="tmpfs"} - node_filesystem_free_bytes{fstype!="tmpfs"}) / node_filesystem_size_bytes{fstype!="tmpfs"} * 100 > 85
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High disk usage (instance {% raw %}{{ $labels.instance }}{% endraw %})"
+          description: "Disk usage is > 85%\n  VALUE = {% raw %}{{ $value }}{% endraw %}%\n  LABELS = {% raw %}{{ $labels }}{% endraw %}"
+
+      # Additional Disk Alerts
+      - alert: HighDiskIO
+        expr: node_disk_io_now > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High Disk IO on {% raw %}{{ $labels.instance }}{% endraw %}"
+          description: "Disk IO is very high (current value: {% raw %}{{ $value }}{% endraw %})"
+
+      - alert: DiskSpaceRunningLow
+        expr: 100 - ((node_filesystem_free_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100) > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low Disk Space on {% raw %}{{ $labels.instance }}{% endraw %}"
+          description: "Disk space is above 85% used (current value: {% raw %}{{ $value }}{% endraw %}%)"
+
+      # Ethereum Node specific alerts
+      - alert: ExecutionClientDown
+        expr: up{job="execution_client"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Execution client is down"
+          description: "Execution client has been down for more than 5 minutes"
+
+      - alert: BeaconNodeDown
+        expr: up{job="beacon_node"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Beacon node is down"
+          description: "Beacon node has been down for more than 5 minutes"
+
+      - alert: ValidatorClientDown
+        expr: up{job="validator_client"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Validator client is down"
+          description: "Validator client has been down for more than 5 minutes"
+
+      - alert: LighthouseBeaconNodeSyncing
+        expr: lighthouse_beacon_node_syncing == 1
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Lighthouse beacon node is syncing"
+          description: "Lighthouse beacon node has been syncing for more than 30 minutes"
+
+      - alert: NethermindNotSynced
+        expr: (time() - nethermind_block_timestamp) > 600
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Nethermind not synced"
+          description: "Nethermind execution client is more than 10 minutes behind current time"
+
+      - alert: ValidatorMissedAttestations
+        expr: increase(validator_attestation_errors_total[1h]) > 5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Validator missing attestations"
+          description: "Validator has missed more than 5 attestations in the last hour" 

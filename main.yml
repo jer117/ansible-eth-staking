@@ -10,9 +10,25 @@
       ansible.builtin.include_vars: main.yml
       tags: [always]
 
+    - name: Include monitoring vars
+      ansible.builtin.include_vars: monitoring.yml
+      tags: [always]
+
     - name: Include default vars
       ansible.builtin.include_vars: defaults/main.yml
       tags: [always]
+
+    - name: Create directory structure for home staking role
+      become_user: root
+      become: true
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+      with_items:
+        - "{{ host_config_mount }}"
 
     - name: Create Docker network
       docker_network:

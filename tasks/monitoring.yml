@@ -18,19 +18,58 @@
     - "{{ host_config_mount }}/prometheus"
     - "{{ host_config_mount }}/grafana"
     - "{{ host_config_mount }}/grafana/agent"
+    - "{{ host_config_mount }}/grafana/provisioning/dashboards"
+    - "{{ host_config_mount }}/grafana/provisioning/datasources"
+    - "{{ host_config_mount }}/prometheus/rules"
+    - "{{ host_config_mount }}/alertmanager"
 
-- name: Task Copy helper scripts
+- name: Task Copy datasource config
   become_user: root
   become: true
   template:
     src: datasource.yml
-    dest: "{{ host_config_mount }}/grafana/datasource.yml"
+    dest: "{{ host_config_mount }}/grafana/provisioning/datasources/datasource.yml"
     force: true
     owner: "root"
     group: "root"
     mode: "0755"
-  with_items:
-    - datasource.yml
+  register: datasource_cfg
+
+- name: Copy dashboard provisioning config
+  template:
+    src: dashboard.yml
+    dest: "{{ host_config_mount }}/grafana/provisioning/dashboards/dashboard.yml"
+    owner: root
+    group: root
+    mode: "0644"
+  register: dashboard_cfg
+
+- name: Copy Home Staking dashboard
+  template:
+    src: home_staking_dashboard.json
+    dest: "{{ host_config_mount }}/grafana/provisioning/dashboards/home_staking_dashboard.json"
+    owner: root
+    group: root
+    mode: "0644"
+  register: home_staking_dashboard_cfg
+
+- name: Copy alert rules
+  template:
+    src: alert_rules.yml
+    dest: "{{ host_config_mount }}/prometheus/rules/alert_rules.yml"
+    owner: root
+    group: root
+    mode: "0644"
+  register: alertrules_cfg
+
+- name: Copy alertmanager config
+  template:
+    src: alertmanager.yml
+    dest: "{{ host_config_mount }}/alertmanager/alertmanager.yml"
+    owner: root
+    group: root
+    mode: "0644"
+  register: alertmanager_cfg
 
 - name: Task copy grafana-agent.yml
   become_user: root
@@ -42,8 +81,6 @@
     owner: "root"
     group: "root"
     mode: "0755"
-  with_items:
-    - grafana-agent.yml
   register: graf_cfg
 
 - name: Task copy prometheus.yml
@@ -56,22 +93,11 @@
     owner: "root"
     group: "root"
     mode: "0755"
-  with_items:
-    - prometheus.yml
   register: prom_cfg
 
 - name: Monitoring config changed
   ansible.builtin.set_fact:
-    cfg_changed: "{{ prom_cfg.changed | bool or graf_cfg.changed | bool }}"
-
-- name: Create necessary directories
-  file:
-    path: "{{ item }}"
-    state: directory
-    owner: root
-    group: root
-  with_items:
-    - "{{ host_config_mount }}/monitoring"
+    cfg_changed: "{{ prom_cfg.changed | bool or graf_cfg.changed | bool or datasource_cfg.changed | bool or dashboard_cfg.changed | bool or home_staking_dashboard_cfg.changed | bool or alertrules_cfg.changed | bool or alertmanager_cfg.changed | bool }}"
 
 - name: Start node exporter
   become_user: root
@@ -90,12 +116,12 @@
     ports:
       - "127.0.0.1:9100:9100"
 
-- name: Start grafana agent
+- name: Start alertmanager
   become_user: root
   become: true
   community.docker.docker_container:
-    name: grafana_agent
-    image: grafana/agent:v0.41.1
+    name: alertmanager
+    image: prom/alertmanager:latest
     state: started
     pull: true
     restart_policy: unless-stopped
@@ -105,12 +131,12 @@
     networks_cli_compatible: true
     privileged: true
     ports:
-      - "127.0.0.1:12345:12345"  # Replace with the actual port you want to expose, if necessary
+      - "9093:9093"
     volumes:
-      - "{{ host_config_mount }}/grafana:/etc/agent"
+      - "{{ host_config_mount }}/alertmanager:/etc/alertmanager"
     command:
-      - --config.file=/etc/agent/grafana-agent.yml
-      - --server.http.address=0.0.0.0:12345
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--storage.path=/alertmanager"
 
 - name: Start prometheus container
   become_user: root
@@ -130,6 +156,34 @@
       - "9090:9090"
     volumes:
       - "{{ host_config_mount }}/prometheus:/etc/prometheus"
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.console.libraries=/usr/share/prometheus/console_libraries
+      - --web.console.templates=/usr/share/prometheus/consoles
+      - --web.enable-lifecycle
+
+- name: Start grafana agent
+  become_user: root
+  become: true
+  community.docker.docker_container:
+    name: grafana_agent
+    image: grafana/agent:v0.41.1
+    state: started
+    pull: true
+    restart_policy: unless-stopped
+    restart: "{{ cfg_changed }}"
+    networks:
+      - name: "eth-staking-network-net"
+    networks_cli_compatible: true
+    privileged: true
+    ports:
+      - "127.0.0.1:12345:12345"
+    volumes:
+      - "{{ host_config_mount }}/grafana:/etc/agent"
+    command:
+      - --config.file=/etc/agent/grafana-agent.yml
+      - --server.http.address=0.0.0.0:12345
 
 - name: Start grafana dashboard container
   become_user: root
@@ -149,5 +203,7 @@
       - "3000:3000"
     env:
       GF_SECURITY_ADMIN_PASSWORD: "{{ GRAFANA_ADMIN_PASSWORD }}"
+      GF_INSTALL_PLUGINS: "grafana-piechart-panel,grafana-clock-panel"
     volumes:
-      - "{{ host_config_mount }}/grafana/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml"
+      - "{{ host_config_mount }}/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources"
+      - "{{ host_config_mount }}/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards"
