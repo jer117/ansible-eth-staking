@@ -15,6 +15,39 @@ Ansible role for eth home stakers.
 - Ansible 2.10+ on control machine
 - Target hosts with Docker, SSH access, and sufficient resources (4+ CPU cores, 8+ GB RAM)
 
+## Firewall Configuration
+
+Configure UFW (Uncomplicated Firewall) to secure your staking node:
+
+```bash
+# Reset UFW to default
+sudo ufw reset
+
+# Set default policies
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+
+# Allow SSH
+sudo ufw allow 22/tcp
+
+# Ethereum execution client
+sudo ufw allow 8545/tcp  # JSON-RPC API
+sudo ufw allow 8551/tcp  # Engine API
+sudo ufw allow 30303/tcp # P2P communication
+
+# Monitoring
+sudo ufw allow 3000/tcp  # Grafana
+sudo ufw allow 9090/tcp  # Prometheus
+sudo ufw allow 24165/tcp # cAdvisor
+sudo ufw allow 9093/tcp  # AlertManager
+
+# Enable UFW
+sudo ufw enable
+
+# Verify rules
+sudo ufw status verbose
+```
+
 ## Quick Start
 
 ```bash
