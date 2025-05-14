@@ -1,0 +1,80 @@
+groups:
+  - name: ResourceAlerts
+    rules:
+      # Memory Alert
+      - alert: HighMemoryUsage
+        expr: 100 - ((node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100) > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High Memory Usage on {{ '{{' }} $labels.instance {{ '}}' }}"
+          description: "Memory usage is above 85% (current value: {{ '{{' }} $value {{ '}}' }}%)"
+
+      # Disk Alerts
+      - alert: HighDiskIO
+        expr: node_disk_io_now > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High Disk IO on {{ '{{' }} $labels.instance {{ '}}' }}"
+          description: "Disk IO is very high (current value: {{ '{{' }} $value {{ '}}' }})"
+
+      - alert: DiskSpaceRunningLow
+        expr: 100 - ((node_filesystem_free_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100) > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low Disk Space on {{ '{{' }} $labels.instance {{ '}}' }}"
+          description: "Disk space is above 85% used (current value: {{ '{{' }} $value {{ '}}' }}%)"
+
+  - name: ETHBalanceAlerts
+    rules:
+      - alert: LowOperatorETHBalance
+        expr: river_stream_operator_base_eth < 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low Operator ETH Balance on {{ '{{' }} $labels.instance {{ '}}' }}"
+          description: "Operator ETH balance is low (current value: {{ '{{' }} $value {{ '}}' }} ETH)"
+
+      - alert: LowNodeETHBalance
+        expr: river_stream_node_base_eth < 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low Node ETH Balance on {{ '{{' }} $labels.instance {{ '}}' }}"
+          description: "Node ETH balance is low (current value: {{ '{{' }} $value {{ '}}' }} ETH)"
+
+      - alert: LowTxPoolBalance
+        expr: river_stream_txpool_wallet_balance_eth < 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low TxPool Wallet Balance on {{ '{{' }} $labels.instance {{ '}}' }}"
+          description: "TxPool wallet balance is low (current value: {{ '{{' }} $value {{ '}}' }} ETH)"
+
+  - name: RiverMetrics
+    rules:
+      - alert: PostgresMigrationIssue
+        expr: river_stream_postgres_migrated_streams < 1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Postgres Migration Issue on {{ '{{' }} $labels.instance {{ '}}' }}"
+          description: "Stream migration count is below expected (current value: {{ '{{' }} $value {{ '}}' }})"
+
+      - alert: DBTransactionIssue
+        expr: river_stream_dbtx_status != 1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "DB Transaction Issue on {{ '{{' }} $labels.instance {{ '}}' }}"
+          description: "Database transaction status is not normal (current value: {{ '{{' }} $value {{ '}}' }})" 

@@ -1,0 +1,100 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - /etc/prometheus/rules/*.yml
+
+# Set up alerting to the configured alert manager
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - 'localhost:9093'
+
+scrape_configs:
+  # Local Prometheus metrics
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+      
+  # Local node-exporter metrics for system metrics
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['localhost:9100']
+    metrics_path: '/metrics'
+    
+  # Local docker metrics via cadvisor
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['localhost:8080']
+    metrics_path: '/metrics'
+    
+  # Consensus node metrics from this server
+  - job_name: 'consensus-local'
+    static_configs:
+      - targets: ['consensus:{{ consensus_monitoring_port }}']
+    metrics_path: '/metrics'
+    labels:
+      instance: "{{ server_name }}"
+  
+  # Validator client metrics
+  - job_name: 'validator-local'
+    static_configs:
+      - targets: ['validator:{{ validator_monitoring_port }}']
+    metrics_path: '/metrics'
+    labels:
+      instance: "{{ server_name }}"
+
+  # Execution client metrics
+  - job_name: 'execution-local'
+    static_configs:
+      - targets: ['execution:{{ execution_monitoring_port }}']
+    metrics_path: '/metrics'
+    labels:
+      instance: "{{ server_name }}"
+
+  # MEV-Boost metrics (if enabled)
+  {% if mev_boost_enabled == "true" %}
+  - job_name: 'mev-boost-local'
+    static_configs:
+      - targets: ['mev-boost:{{ mev_boost_api_port }}']
+    metrics_path: '/metrics'
+    labels:
+      instance: "{{ server_name }}"
+  {% endif %}
+
+  # Charon metrics (if using distributed validator)
+  {% if charon_container_name is defined %}
+  - job_name: 'charon-local'
+    static_configs:
+      - targets: ['charon:{{ charon_monitoring_port }}']
+    metrics_path: '/metrics'
+    labels:
+      instance: "{{ server_name }}"
+  {% endif %}
+
+  # Grafana agent metrics
+  {% if grafana_agent_http_port is defined %}
+  - job_name: 'grafana-agent'
+    static_configs:
+      - targets: ['grafana-agent:{{ grafana_agent_http_port }}']
+    metrics_path: '/metrics'
+    labels:
+      instance: "{{ server_name }}"
+  {% endif %}
+  
+  # External River nodes metrics - dynamically add all servers
+  {% if groups['all'] is defined %}
+  {% for host in groups['all'] %}
+  {% if host != inventory_hostname %}
+  - job_name: "river-{{ host | regex_replace('[^a-zA-Z0-9]', '-') }}"
+    static_configs:
+      - targets: ['{{ host }}:9090']
+    metrics_path: '/metrics'
+    honor_labels: true
+    labels:
+      instance: "{{ host }}"
+  {% endif %}
+  {% endfor %}
+  {% endif %} 
