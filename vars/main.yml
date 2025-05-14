@@ -1,5 +1,5 @@
 ---
-role: core
+role: ethereum-home-staking
 config: "{{ role }}.config"
 
 # Set docker container mem limit to 75% of available machine memory
