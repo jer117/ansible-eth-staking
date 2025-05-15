@@ -15,7 +15,7 @@ prysm_image: "gcr.io/prysmaticlabs/prysm/beacon-chain:v6.0.0"
 
 lodestar_image: "chainsafe/lodestar:v1.29.0"
 
-charon_docker_image: "obolnetwork/charon:v1.4-dev" 
+charon_docker_image: "obolnetwork/charon:v1.4.0" 
 
 # Directories
 host_config_mount: ".eth-staking/config"
@@ -29,9 +29,6 @@ execution:
     mainnet: mainnet
     sepolia: sepolia
     hoodi: hoodi
-
-is_leader: "{{ is_leader | default(false) }}"
-cadvisor_enabled: "{{ cadvisor_enabled | default(false) }}"
 
 # Monitoring Vars
 prometheus_name: "prometheus"

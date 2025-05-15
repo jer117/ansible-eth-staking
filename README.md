@@ -31,12 +31,12 @@ sudo ufw default allow outgoing
 sudo ufw allow 22/tcp
 
 # Ethereum execution client
-sudo ufw allow 8545/tcp  # JSON-RPC API
-sudo ufw allow 8551/tcp  # Engine API
-sudo ufw allow 30303/tcp # P2P communication
+sudo ufw allow 8547/tcp  # JSON-RPC API
+sudo ufw allow 8552/tcp  # Engine API
+sudo ufw allow 30304/tcp # P2P communication
 
 # Monitoring
-sudo ufw allow 3000/tcp  # Grafana
+sudo ufw allow 3001/tcp  # Grafana
 sudo ufw allow 9090/tcp  # Prometheus
 sudo ufw allow 24165/tcp # cAdvisor
 sudo ufw allow 9093/tcp  # AlertManager
@@ -54,16 +54,17 @@ sudo ufw status verbose
 # Clone repository
 git clone https://github.com/hydepwns/ansible-eth-staking.git && cd ansible-eth-staking
 
-# Install requirements
+# Install requirements on server in question
 ansible-galaxy collection install -r requirements.yaml
 pip install -r requirements.txt
 
 # Configure inventory
 cp example-inventory.yaml inventory.yaml
+cp example-secrets.yaml secrets.yaml
 # Edit inventory.yaml with your target hosts
 
 # Run playbook
-ansible-playbook -i inventory.yaml main.yaml
+ansible-playbook -i inventory main.yaml
 ```
 
 # How to generate validator keys.
@@ -87,4 +88,27 @@ validators:
   - public_key: "0x789...ghi"
     keystore_file: "keystore-m_12381_3600_0_0_2-1742121898.json"
     keystore_password: "password3"
+```
+
+# Create an Obol Cluster
+```bash
+# Clone the repo
+git clone https://github.com/ObolNetwork/charon-distributed-validator-node.git
+# Create the .charon repo at the root directory or home directory
+mkdir .charon
+chmod 777 .charon/
+# Change directory
+cd charon-distributed-validator-node/
+# Use docker to create an ENR. Backup the file `.charon/charon-enr-private-key`.
+# This must be ran on each node.
+docker run --rm -v "$(pwd):/opt/charon" obolnetwork/charon:v1.4.0 create enr
+
+#Go to this website
+https://hoodi.launchpad.obol.org/
+
+# After creating the splitter contract, this should be ran on every server in the Obol cluster.
+docker run -u $(id -u):$(id -g) --rm -v "$(pwd)/:/opt/charon" obolnetwork/charon:v1.4.0 dkg --definition-file="https://api.obol.tech/v1/definition/0xc2539e3df1179d103140b54520f096498be0b96ba1811857fde0576a0c831b2f" --publish
+
+# Cluster Dashboard
+https://api.obol.tech/lock/0xC806E59C8D7CB721F4231582C57CC1EFDC7C43613B0F22A9BE1BFE50FD443EBD/launchpad
 ```

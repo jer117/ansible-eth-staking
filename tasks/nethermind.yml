@@ -41,11 +41,11 @@
       --Init.WebSocketsEnabled true
       --JsonRpc.Enabled true
       --JsonRpc.Host "0.0.0.0"
-      --JsonRpc.Port 8545
+      --JsonRpc.Port {{ eth_ansible_execution_1_rpc_port }}
       --Metrics.ExposePort {{ execution_monitoring_port }}
       --Metrics.Enabled true
-      --JsonRpc.EnginePort 8551
+      --JsonRpc.EnginePort {{ eth_ansible_execution_1_engine_port }}
       --JsonRpc.EngineHost "0.0.0.0"
       --JsonRpc.EnabledModules "[\"admin\",\"eth\",\"subscribe\",\"net\",\"web3\",\"txpool\",\"debug\"]"
       --JsonRpc.JwtSecretFile "/exec_token/token"
-      --Network.P2PPort 30303
+      --Network.P2PPort {{ eth_ansible_execution_1_p2p_port }}

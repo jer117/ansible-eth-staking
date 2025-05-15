@@ -2,13 +2,12 @@
 - name: Create Charon directory
   become: true
   ansible.builtin.file:
-    path: "{{ item }}/charon/.charon"
+    path: "/root/.charon/"
     owner: "root"
     group: "root"
     state: directory
     mode: "0755"
   with_items:
-    - "{{ host_config_mount }}"
     - "/data"
 
 # Create DKG
@@ -16,14 +15,14 @@
   block:
     - name: Check if cluster definition file exists
       ansible.builtin.stat:
-        path: "{{ host_config_mount }}/charon/.charon/cluster-definition.json"
+        path: "/root/.charon/cluster-definition.json"
       register: cluster_definition_exists
 
     - name: Template dkg config file
       become: true
       ansible.builtin.template:
         src: .env.create_dkg
-        dest: "{{ host_config_mount }}/charon/.charon/"
+        dest: "/root/.charon/"
         owner: "root"
         group: "root"
         mode: "0755"
@@ -39,8 +38,8 @@
       ansible.builtin.command:
         cmd: >-
           docker run --rm --user 7008:7008
-            -v "{{ host_config_mount }}/charon/:/opt/charon"
-            --env-file {{ host_config_mount }}/charon/.charon/.env.create_dkg
+            -v "/root/.charon/:/opt/charon"
+            --env-file /root/.charon/.env.create_dkg
             "{{ charon_docker_image }}" create dkg
             --network "{{ execution.networks[network] }}"
 
