@@ -13,7 +13,7 @@
 
     # yamllint disable rule:line-length
     command: >
-      -"{{ network }}"
+      --"{{ network }}"
       -relays "{{ mev_boost_relays }}"
       -loglevel debug
       --addr "0.0.0.0:{{ mev_boost_api_port }}"

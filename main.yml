@@ -6,6 +6,18 @@
       ansible.builtin.include_vars: secrets.yml
       tags: [always]
 
+    - name: Check if host vars file exists
+      ansible.builtin.stat:
+        path: "host_vars/{{ inventory_hostname }}.yml"
+      register: host_vars_file
+      tags: [always]
+
+    - name: Load host-specific variables
+      ansible.builtin.include_vars:
+        file: "host_vars/{{ inventory_hostname }}.yml"
+      tags: [always]
+      when: host_vars_file.stat.exists
+
     - name: Include main vars
       ansible.builtin.include_vars: main.yml
       tags: [always]
@@ -53,6 +65,7 @@
 
     - name: Import Validator
       ansible.builtin.import_tasks: tasks/validator.yml
+      when: validators | selectattr('enabled', 'eq', true) | list | length > 0
       tags: [validator]
 
     - name: Install Cadvisor
