@@ -1,4 +1,14 @@
 ---
+{% if charon_enabled == 'true' and host_validator_public_key is defined %}
+- enabled: true
+  voting_public_key: "0x{{ host_validator_public_key }}"
+  type: "web3signer"
+  url: "http://{{ charon_container_name }}:{{ charon_validator_api_port }}"
+  fee_recipient: "{{ withdrawal_account_address }}"
+  gas_limit: 30000000
+  builder_proposals: true
+  builder_boost_factor: 100
+{% else %}
 {% for validator in validators %}
 - enabled: {{ validator.enabled | default(true) | lower }}
   voting_public_key: "{{ validator.public_key }}"
@@ -6,3 +16,4 @@
   voting_keystore_path: "/validators/keys/{{ validator.keystore_file }}"
   voting_keystore_password_path: "/validators/passwords/{{ validator.keystore_file | replace('.json', '') }}"
 {% endfor %}
+{% endif %}

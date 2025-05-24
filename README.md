@@ -93,22 +93,37 @@ validators:
 # Create an Obol Cluster
 ```bash
 # Clone the repo
-git clone https://github.com/ObolNetwork/charon-distributed-validator-node.git
-# Create the .charon repo at the root directory or home directory
-mkdir .charon
-chmod 777 .charon/
-# Change directory
-cd charon-distributed-validator-node/
+ansible-playbook -i inventory main.yml --skip-tags=charon
 # Use docker to create an ENR. Backup the file `.charon/charon-enr-private-key`.
 # This must be ran on each node.
-docker run --rm -v "$(pwd):/opt/charon" obolnetwork/charon:v1.4.0 create enr
+docker run --rm -v "$(pwd):/opt/charon" obolnetwork/charon:v1.5.1 create enr
+
+# Backup all private keys. Then import to metamask so you can accept cluster invite
+# Remove this directory as it will be re generated
+rm -rf .charon/validator_keys/
+
+#Make sure everyone accepts the invite here.
+https://hoodi.launchpad.obol.org/dv/
+
+https://hoodi.launchpad.obol.org/dv#0x14f47570bdaaa1aed11a8d49e57f40616eabb0589d3351b0010c0c0fe47557d6
+
+# Backup the files that were generated from the dky cermony
+sudo cp -r .charon/ .charon_backup
+scp -r root@IP:/root/.charon_backup .
 
 #Go to this website
 https://hoodi.launchpad.obol.org/
 
 # After creating the splitter contract, this should be ran on every server in the Obol cluster.
-docker run -u $(id -u):$(id -g) --rm -v "$(pwd)/:/opt/charon" obolnetwork/charon:v1.4.0 dkg --definition-file="https://api.obol.tech/v1/definition/0xc2539e3df1179d103140b54520f096498be0b96ba1811857fde0576a0c831b2f" --publish
+docker run -u $(id -u):$(id -g) --rm -v "$(pwd)/:/opt/charon" obolnetwork/charon:v1.5.1 dkg --definition-file="https://api.obol.tech/v1/definition/0x14f47570bdaaa1aed11a8d49e57f40616eabb0589d3351b0010c0c0fe47557d6" --publish
 
 # Cluster Dashboard
-https://api.obol.tech/lock/0xC806E59C8D7CB721F4231582C57CC1EFDC7C43613B0F22A9BE1BFE50FD443EBD/launchpad
+# You can find your newly-created cluster dashboard here: 
+https://api.obol.tech/lock/0xDF6E1CB2251671A4CC51C01171286389869F8FC96F5A662B22413EB5484277EF/launchpad
+
+# Deposit the Eth to your validator here.
+https://hoodi.launchpad.obol.org/deposit/advisories/
+
+# Run this to make sure everything is running as expected
+docker run   -u $(id -u):$(id -g)  --network eth-staking-network-net --restart always --name charon -v "/root/.charon:/opt/charon:rw"   -p 3610:3610   -p 127.0.0.1:3620:3620   obolnetwork/charon:v1.5.1   run   --beacon-node-endpoints http://eth-ansible-consensus-1:5062   --p2p-tcp-address 0.0.0.0:3610   --validator-api-address 0.0.0.0:3600   --monitoring-address 0.0.0.0:3620   --p2p-relays https://0.relay.obol.tech   --log-level info   --log-format console   --log-color auto   --builder-api false   --private-key-file-lock true   --private-key-file /opt/charon/charon-enr-private-key   --lock-file /opt/charon/cluster-lock.json
 ```

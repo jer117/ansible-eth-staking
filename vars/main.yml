@@ -43,12 +43,12 @@ charon_p2p_tcp_port: 3610
 charon_validator_api_port: 3600
 charon_monitoring_port: 3620
 charon_container_name: charon
-charon_relay_address: https://0.relay.obol.tech
+charon_relay_address: "https://0.relay.obol.tech,https://1.relay.obol.tech/,https://charon-relay.dsrvlabs.dev/,https://obol-relay.infstones.com/,https://relay-2.prod-relay.721.land/"
 charon_enabled: "true"
 
 # mev
 mev_boost_docker_image: "flashbots/mev-boost:1.9"
-mev_boost_enabled: "true"
+mev_boost_enabled: "false"
 mev_enabled: "{{ mev_boost_enabled }}"
 mev_boost_container_name: mev-boost
 mev_nework_name: "{{ network }}"

@@ -6,7 +6,7 @@
     owner: "root"
     group: "root"
     state: directory
-    mode: "0755"
+    mode: "0777"
   with_items:
     - "/data"
 

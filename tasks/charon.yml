@@ -1,10 +1,4 @@
 ---
-- name: Check if cluster definition exists
-  become: false
-  ansible.builtin.stat:
-    path: "/root/.charon/cluster-definition.json"
-  register: cluster_definition_exists
-
 - name: Check if cluster lock exists
   become: false
   ansible.builtin.stat:
@@ -31,47 +25,36 @@
   no_log: true
   when: host_charon_enr_private_key is defined
 
-- name: Copy cluster definition
-  ansible.builtin.copy:
-    content: "{{ lookup('file', 'cluster-definition.json') }}"
-    dest: "/root/.charon/cluster-definition.json"
-    owner: "root"
-    group: "root"
-    mode: "0666"
-    force: true
-  register: cluster_def_copy
-
 - name: Start/Restart the Charon client docker container
-  community.general.docker_container:
+  community.docker.docker_container:
     image: "{{ charon_docker_image }}"
     keep_volumes: true
     name: "{{ charon_container_name }}"
-    network_mode: bridge
     networks:
       - name: "eth-staking-network-net"
-    command: >
-      run
-      --beacon-node-endpoints http://{{ consensus_docker_container_name }}:{{ consensus_client_http_api_port }}
-      --beacon-node-timeout 10s
-      --beacon-node-submit-timeout 10s
-      --p2p-tcp-address 0.0.0.0:{{ charon_p2p_tcp_port }}
-      --validator-api-address 0.0.0.0:{{ charon_validator_api_port }}
-      --monitoring-address 0.0.0.0:{{ charon_monitoring_port }}
-      --p2p-relays {{ charon_relay_address }}
-      --log-level info
-      --log-format console
-      --log-color auto
-      --builder-api false
-      --private-key-file-lock false
-      --private-key-file /opt/charon/charon-enr-private-key
-      --lock-file /opt/charon/cluster-lock.json
-      --p2p-external-hostname {{ inventory_hostname }}
-      --p2p-external-ip {{ ansible_default_ipv4.address }}
+    networks_cli_compatible: true
+    command: "run"
+    env:
+      CHARON_BEACON_NODE_ENDPOINTS: "http://{{ consensus_docker_container_name }}:{{ consensus_client_http_api_port }}"
+      CHARON_LOG_LEVEL: "debug"
+      CHARON_LOG_FORMAT: "console"
+      CHARON_P2P_RELAYS: "{{ charon_relay_address }}"
+      CHARON_P2P_TCP_ADDRESS: "0.0.0.0:{{ charon_p2p_tcp_port }}"
+      CHARON_VALIDATOR_API_ADDRESS: "0.0.0.0:{{ charon_validator_api_port }}"
+      CHARON_MONITORING_ADDRESS: "0.0.0.0:{{ charon_monitoring_port }}"
+      CHARON_BUILDER_API: "false"
+      CHARON_FEATURE_SET_ENABLE: "eager_double_linear,consensus_participate"
+      CHARON_PRIVATE_KEY_FILE_LOCK: "true"
+      CHARON_PRIVATE_KEY_FILE: "/opt/charon/charon-enr-private-key"
+      CHARON_LOCK_FILE: "/opt/charon/cluster-lock.json"
     published_ports:
-      - "{{ charon_p2p_tcp_port }}:{{ charon_p2p_tcp_port }}"
-      - 127.0.0.1:{{ charon_monitoring_port }}:{{ charon_monitoring_port }}
+      - "{{ charon_p2p_tcp_port }}:{{ charon_p2p_tcp_port }}/tcp"
+      - "{{ charon_validator_api_port }}:{{ charon_validator_api_port }}"
+      - "127.0.0.1:{{ charon_monitoring_port }}:{{ charon_monitoring_port }}"
     restart_policy: always
     state: started
     volumes:
       - "/root/.charon:/opt/charon:rw"
-  when: cluster_definition_exists.stat.exists and cluster_lock.stat.exists
+    healthcheck:
+      test: wget -qO- http://localhost:{{ charon_monitoring_port }}/readyz
+  when: cluster_lock.stat.exists

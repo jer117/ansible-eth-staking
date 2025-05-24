@@ -1,10 +1,6 @@
 ---
 - hosts: all
   tasks:
-    - name: Load secret variables
-      ansible.builtin.include_vars: secrets.yml
-      tags: [always]
-
     - name: Check if host vars file exists
       ansible.builtin.stat:
         path: "host_vars/{{ inventory_hostname }}.yml"
@@ -66,7 +62,7 @@
 
     - name: Import Validator
       ansible.builtin.import_tasks: tasks/validator.yml
-      when: validators | selectattr('enabled', 'eq', true) | list | length > 0
+      when: validators is defined and validators | length > 0
       tags: [validator]
 
     - name: Install Cadvisor
