@@ -46,30 +46,28 @@
     image: "{{ charon_docker_image }}"
     keep_volumes: true
     name: "{{ charon_container_name }}"
-    network_mode: bridge
     networks:
       - name: "eth-staking-network-net"
+    networks_cli_compatible: true
     command: >
       run
       --beacon-node-endpoints http://{{ consensus_docker_container_name }}:{{ consensus_client_http_api_port }}
       --beacon-node-timeout 10s
       --beacon-node-submit-timeout 10s
-      --p2p-tcp-address 0.0.0.0:{{ charon_p2p_tcp_port }}
-      --validator-api-address 0.0.0.0:{{ charon_validator_api_port }}
-      --monitoring-address 0.0.0.0:{{ charon_monitoring_port }}
+      --p2p-tcp-address {{ charon_container_name }}:{{ charon_p2p_tcp_port }}
+      --validator-api-address {{ charon_container_name }}:{{ charon_validator_api_port }}
+      --monitoring-address {{ charon_container_name }}:{{ charon_monitoring_port }}
       --p2p-relays {{ charon_relay_address }}
-      --log-level info
+      --log-level debug
       --log-format console
       --log-color auto
       --builder-api false
-      --private-key-file-lock false
+      --private-key-file-lock true
       --private-key-file /opt/charon/charon-enr-private-key
       --lock-file /opt/charon/cluster-lock.json
-      --p2p-external-hostname {{ inventory_hostname }}
-      --p2p-external-ip {{ ansible_default_ipv4.address }}
     published_ports:
       - "{{ charon_p2p_tcp_port }}:{{ charon_p2p_tcp_port }}"
-      - 127.0.0.1:{{ charon_monitoring_port }}:{{ charon_monitoring_port }}
+      - "127.0.0.1:{{ charon_monitoring_port }}:{{ charon_monitoring_port }}"
     restart_policy: always
     state: started
     volumes:
