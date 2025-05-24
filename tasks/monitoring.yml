@@ -200,7 +200,7 @@
     networks_cli_compatible: true
     privileged: true
     ports:
-      - "3000:3000"
+      - "3001:3001"
     env:
       GF_SECURITY_ADMIN_PASSWORD: "{{ GRAFANA_ADMIN_PASSWORD }}"
       GF_INSTALL_PLUGINS: "grafana-piechart-panel,grafana-clock-panel"

@@ -14,10 +14,10 @@ validator_client_http_api_port: 5064
 validator_monitoring_port: 8009
 
 # execution ports
-eth_ansible_execution_1_p2p_port: 30303
-eth_ansible_execution_1_engine_port: 8551
-eth_ansible_execution_1_rpc_port: 8545
-eth_ansible_execution_1_websocket_port: 8546
+eth_ansible_execution_1_p2p_port: 30304
+eth_ansible_execution_1_engine_port: 8552
+eth_ansible_execution_1_rpc_port: 8544
+eth_ansible_execution_1_websocket_port: 8548
 
 # Execution / docker mounts (override if neccessary)
 execution_config_mount: /root/.nethermind/exec_token
@@ -34,14 +34,9 @@ docker_data_mount: /data
 # Geth Execution Layer Client
 execution_data_dir: "/data/execution"
 execution_container_name: execution
-execution_rpc_port: 8545
-execution_websocket_port: 8546
-execution_p2p_port: 30303
-execution_legacy_discovery_port: 30303
-execution_discovery_port: 30304
 letsencrypt_port: 80
 execution_monitoring_port: 6060
-execution_auth_port: 8551
+execution_auth_port: 8552
 
 # Charon variables
 charon_p2p_tcp_port: 3610
@@ -49,10 +44,11 @@ charon_validator_api_port: 3600
 charon_monitoring_port: 3620
 charon_container_name: charon
 charon_relay_address: https://0.relay.obol.tech
+charon_enabled: "true"
 
 # mev
-mev_boost_docker_image: "flashbots/mev-boost:1.9rc2"
-mev_boost_enabled: "false"
+mev_boost_docker_image: "flashbots/mev-boost:1.9"
+mev_boost_enabled: "true"
 mev_enabled: "{{ mev_boost_enabled }}"
 mev_boost_container_name: mev-boost
 mev_nework_name: "{{ network }}"

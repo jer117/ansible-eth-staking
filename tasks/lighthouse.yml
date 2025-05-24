@@ -58,7 +58,7 @@
       --port {{ consensus_p2p_port | default('9000') }}
       --quic-port {{ consensus_quic_port | default('9001') }}
       --target-peers {{ consensus_target_peers | default('100') }}
-      --execution-endpoint http://{{ execution_docker_container_name }}:8551
+      --execution-endpoint http://{{ execution_docker_container_name }}:{{ execution_auth_port }}
       --execution-jwt "/exec_token/token"
       --debug-level info
       --metrics

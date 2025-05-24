@@ -1,10 +1,21 @@
 ---
 - hosts: all
-
   tasks:
     - name: Load secret variables
       ansible.builtin.include_vars: secrets.yml
       tags: [always]
+
+    - name: Check if host vars file exists
+      ansible.builtin.stat:
+        path: "host_vars/{{ inventory_hostname }}.yml"
+      register: host_vars_file
+      tags: [always]
+
+    - name: Load host-specific variables
+      ansible.builtin.include_vars:
+        file: "host_vars/{{ inventory_hostname }}.yml"
+      tags: [always]
+      when: host_vars_file.stat.exists
 
     - name: Include main vars
       ansible.builtin.include_vars: main.yml
@@ -42,10 +53,12 @@
     # - name: Import charon_leader role
     #   ansible.builtin.import_tasks: tasks/charon_leader.yml
     #   tags: [charon-leader]
+    #   when: charon_enabled == 'true' and is_leader == 'true'
 
-    # - name: Import charon
-    #   ansible.builtin.import_tasks: tasks/charon.yml
-    #   tags: [charon]
+    - name: Import charon
+      ansible.builtin.import_tasks: tasks/charon.yml
+      tags: [charon]
+      when: charon_enabled == 'true'
 
     - name: Import Consensus
       ansible.builtin.import_tasks: tasks/lighthouse.yml
@@ -53,6 +66,7 @@
 
     - name: Import Validator
       ansible.builtin.import_tasks: tasks/validator.yml
+      when: validators | selectattr('enabled', 'eq', true) | list | length > 0
       tags: [validator]
 
     - name: Install Cadvisor
@@ -65,7 +79,7 @@
 
     - name: Import mev-boost tasks
       ansible.builtin.import_tasks: tasks/mev-boost.yml
-      when: (mev_enabled)
+      when: mev_boost_enabled == 'true'
       tags: [mev]
 
   handlers:
