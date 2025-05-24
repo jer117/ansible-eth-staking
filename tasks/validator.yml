@@ -26,6 +26,16 @@
 #   with_items: "{{ validators }}"
 #   when: validators is defined
 
+- name: Create validator definition file
+  become: true
+  ansible.builtin.template:
+    src: templates/validator_definitions.yml.j2
+    dest: "/root/.charon/validator_keys/validator_definitions.yml"
+    owner: "root"
+    group: "root"
+    mode: "0600"
+  when: charon_enabled == 'true' and host_validator_public_key is defined
+
 - name: Create validator_definitions.yml
   become: true
   ansible.builtin.template:
@@ -34,6 +44,7 @@
     owner: "root"
     group: "root"
     mode: "0600"
+  when: keystore_file is defined
 
 # Set docker ports
 - name: Set validator docker ports
@@ -55,15 +66,14 @@
     restart_policy: unless-stopped
     state: started
     volumes:
-      - "{{ validator_keys_mount }}/keys:/validators/keys"
+      - "/root/.charon/validator_keys:/validator_keys"
       - "{{ validator_keys_mount }}/passwords:/validators/passwords"
       - "{{ validator_data_mount }}:/data"
     command: >
       lighthouse validator_client
-      --beacon-nodes http://{{ consensus_docker_container_name }}:{{ consensus_client_http_api_port }}
-      --validators-dir /validators/keys
-      --secrets-dir /validators/passwords
-      --graffiti "{{ validator_graffiti }}"
+      {% if charon_enabled == 'true' %}
+      --beacon-nodes http://{{ charon_container_name }}:{{ charon_validator_api_port }}
+      --validators-dir /validator_keys
       --suggested-fee-recipient {{ withdrawal_account_address }}
       --init-slashing-protection
       --http
@@ -75,4 +85,21 @@
       --metrics-address 0.0.0.0
       --metrics-port {{ validator_monitoring_port }}
       --network {{ network }}
-      --disable-auto-discover 
+      --disable-auto-discover
+      {% else %}
+      --beacon-nodes http://{{ consensus_docker_container_name }}:{{ consensus_client_http_api_port }}
+      --validators-dir /validators/keys
+      --secrets-dir /validators/passwords
+      --suggested-fee-recipient {{ withdrawal_account_address }}
+      --init-slashing-protection
+      --http
+      --http-address 0.0.0.0
+      --unencrypted-http-transport
+      --http-port {{ validator_client_http_api_port }}
+      --http-allow-origin "*"
+      --metrics
+      --metrics-address 0.0.0.0
+      --metrics-port {{ validator_monitoring_port }}
+      --network {{ network }}
+      --disable-auto-discover
+      {% endif %} 
