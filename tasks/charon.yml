@@ -61,7 +61,6 @@
       --log-level info
       --log-format console
       --log-color auto
-      --builder-api false
       --private-key-file-lock false
       --private-key-file /opt/charon/charon-enr-private-key
       --lock-file /opt/charon/cluster-lock.json
