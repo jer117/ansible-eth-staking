@@ -1,0 +1,304 @@
+---
+- hosts: all
+  become: true
+  gather_facts: true
+  
+  tasks:
+    - name: Load secret variables
+      ansible.builtin.include_vars: ../secrets.yml
+      tags: [always]
+
+    - name: Check if host vars file exists
+      ansible.builtin.stat:
+        path: "../host_vars/{{ inventory_hostname }}.yml"
+      register: host_vars_file
+      tags: [always]
+
+    - name: Load host-specific variables
+      ansible.builtin.include_vars:
+        file: "../host_vars/{{ inventory_hostname }}.yml"
+      tags: [always]
+      when: host_vars_file.stat.exists
+
+    - name: Include main vars
+      ansible.builtin.include_vars: ../vars/main.yml
+      tags: [always]
+
+    - name: Include monitoring vars
+      ansible.builtin.include_vars: ../vars/monitoring.yml
+      tags: [always]
+
+    - name: Include default vars
+      ansible.builtin.include_vars: ../defaults/main.yml
+      tags: [always]
+
+    # ============================================================================
+    # 1. DOCKER NETWORK VERIFICATION
+    # ============================================================================
+    
+    - name: Verify Docker network exists
+      community.docker.docker_network_info:
+        name: eth-staking-network-net
+      register: network_info
+
+    - name: Display network information
+      ansible.builtin.debug:
+        msg: "Network {{ network_info.exists | ternary('EXISTS', 'MISSING') }}: {{ network_info.network.Name }}"
+
+    - name: Get all containers on the network
+      community.docker.docker_container_info:
+        name: all
+      register: all_containers
+
+    - name: Check which containers are on eth-staking-network-net
+      ansible.builtin.debug:
+        msg: |
+          Containers on eth-staking-network-net:
+          {% for container in all_containers.containers %}
+          {% if container.NetworkSettings.Networks.eth_staking_network_net is defined %}
+          - {{ container.Names[0] }} ({{ container.State.Status }})
+          {% endif %}
+          {% endfor %}
+
+    # ============================================================================
+    # 2. CONTAINER STATUS VERIFICATION
+    # ============================================================================
+    
+    - name: Check container statuses
+      community.docker.docker_container_info:
+        name: "{{ item }}"
+      register: container_status
+      with_items:
+        - "{{ charon_container_name }}"
+        - "{{ consensus_docker_container_name }}"
+        - "{{ execution_docker_container_name }}"
+        - "{{ validator_container_name }}"
+        - "{{ mev_boost_container_name }}"
+
+    - name: Display container statuses
+      ansible.builtin.debug:
+        msg: |
+          Container Status Report:
+          {% for result in container_status.results %}
+          {% if result.container is defined %}
+          - {{ result.container.Names[0] }}: {{ result.container.State.Status }}
+            Ports: {{ result.container.NetworkSettings.Ports | default('None') }}
+          {% else %}
+          - {{ result.item }}: NOT FOUND
+          {% endif %}
+          {% endfor %}
+
+    # ============================================================================
+    # 3. PORT EXPOSURE VERIFICATION
+    # ============================================================================
+    
+    - name: Check if Charon port 3600 is exposed
+      ansible.builtin.shell: |
+        docker port {{ charon_container_name }} | grep 3600 || echo "Port 3600 not exposed"
+      register: charon_port_check
+
+    - name: Display Charon port exposure
+      ansible.builtin.debug:
+        msg: "Charon port 3600: {{ charon_port_check.stdout }}"
+
+    - name: Test network connectivity between containers
+      ansible.builtin.shell: |
+        docker exec {{ charon_container_name }} ping -c 1 {{ consensus_docker_container_name }} || echo "Cannot ping consensus from charon"
+      register: charon_to_consensus_ping
+
+    - name: Display ping results
+      ansible.builtin.debug:
+        msg: "Charon to Consensus connectivity: {{ charon_to_consensus_ping.stdout }}"
+
+    # ============================================================================
+    # 4. KEY FILE VERIFICATION
+    # ============================================================================
+    
+    - name: Check Charon key files exist
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      register: charon_key_files
+      with_items:
+        - "/root/.charon/cluster-lock.json"
+        - "/root/.charon/charon-enr-private-key"
+        - "/root/.charon/cluster-definition.json"
+
+    - name: Display Charon key file status
+      ansible.builtin.debug:
+        msg: |
+          Charon Key Files:
+          {% for result in charon_key_files.results %}
+          - {{ result.item }}: {{ result.stat.exists | ternary('EXISTS', 'MISSING') }}
+          {% endfor %}
+
+    - name: Check validator key files exist
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      register: validator_key_files
+      with_items:
+        - "/root/.charon/validator_keys"
+        - "{{ validator_keys_mount }}/keys"
+        - "/root/.charon/validator_keys/validator_definitions.yml"
+        - "{{ validator_keys_mount }}/keys/validator_definitions.yml"
+
+    - name: Display validator key file status
+      ansible.builtin.debug:
+        msg: |
+          Validator Key Files:
+          {% for result in validator_key_files.results %}
+          - {{ result.item }}: {{ result.stat.exists | ternary('EXISTS', 'MISSING') }}
+          {% endfor %}
+
+    # ============================================================================
+    # 5. FILE PERMISSIONS VERIFICATION
+    # ============================================================================
+    
+    - name: Check file permissions
+      ansible.builtin.shell: |
+        ls -la /root/.charon/charon-enr-private-key
+        ls -la /root/.charon/cluster-lock.json
+        ls -la /root/.charon/validator_keys/validator_definitions.yml
+      register: file_permissions
+      when: charon_key_files.results[1].stat.exists
+
+    - name: Display file permissions
+      ansible.builtin.debug:
+        msg: "File permissions: {{ file_permissions.stdout }}"
+      when: charon_key_files.results[1].stat.exists
+
+    # ============================================================================
+    # 6. PUBLIC KEY MATCHING VERIFICATION
+    # ============================================================================
+    
+    - name: Extract public key from cluster-lock.json
+      ansible.builtin.shell: |
+        jq -r '.validators[0].public_key' /root/.charon/cluster-lock.json
+      register: cluster_lock_pubkey
+      when: charon_key_files.results[0].stat.exists
+
+    - name: Display cluster-lock public key
+      ansible.builtin.debug:
+        msg: "Cluster-lock public key: {{ cluster_lock_pubkey.stdout }}"
+      when: charon_key_files.results[0].stat.exists
+
+    - name: Extract public key from validator_definitions.yml
+      ansible.builtin.shell: |
+        for file in "/root/.charon/validator_keys/validator_definitions.yml" "{{ validator_keys_mount }}/keys/validator_definitions.yml"; do
+          if [ -f "$file" ]; then
+            grep "voting_public_key" "$file" | head -1 | sed 's/.*"\(.*\)".*/\1/'
+            break
+          fi
+        done
+      register: validator_def_pubkey
+      when: validator_key_files.results[2].stat.exists or validator_key_files.results[3].stat.exists
+
+    - name: Display validator_definitions public key
+      ansible.builtin.debug:
+        msg: "Validator definitions public key: {{ validator_def_pubkey.stdout }}"
+      when: validator_key_files.results[2].stat.exists or validator_key_files.results[3].stat.exists
+
+    - name: Check if public keys match
+      ansible.builtin.debug:
+        msg: |
+          Public Key Comparison:
+          Cluster-lock: {{ cluster_lock_pubkey.stdout | default('NOT FOUND') }}
+          Validator-def: {{ validator_def_pubkey.stdout | default('NOT FOUND') }}
+          MATCH: {{ (cluster_lock_pubkey.stdout | default('')) == (validator_def_pubkey.stdout | default('')) | ternary('YES', 'NO') }}
+      when: charon_key_files.results[0].stat.exists and (validator_key_files.results[2].stat.exists or validator_key_files.results[3].stat.exists)
+
+    # ============================================================================
+    # 7. CONTAINER LOGS ANALYSIS
+    # ============================================================================
+    
+    - name: Get recent Charon logs
+      ansible.builtin.shell: |
+        docker logs --tail 20 {{ charon_container_name }} 2>&1 | grep -E "(ERRO|WARN|unknown public key|Unable to sign)"
+      register: charon_logs
+      failed_when: false
+
+    - name: Display Charon error logs
+      ansible.builtin.debug:
+        msg: |
+          Recent Charon Errors:
+          {{ charon_logs.stdout | default('No recent errors found') }}
+
+    - name: Get recent Lighthouse validator logs
+      ansible.builtin.shell: |
+        docker logs --tail 20 {{ validator_container_name }} 2>&1 | grep -E "(pubkey|ERRO|WARN)"
+      register: lighthouse_logs
+      failed_when: false
+
+    - name: Display Lighthouse validator logs
+      ansible.builtin.debug:
+        msg: |
+          Recent Lighthouse Validator Logs:
+          {{ lighthouse_logs.stdout | default('No recent logs found') }}
+
+    # ============================================================================
+    # 8. NETWORK CONNECTIVITY TESTS
+    # ============================================================================
+    
+    - name: Test Charon API endpoint
+      ansible.builtin.uri:
+        url: "http://{{ charon_container_name }}:{{ charon_validator_api_port }}/health"
+        method: GET
+        timeout: 5
+      register: charon_api_test
+      failed_when: false
+
+    - name: Display Charon API test result
+      ansible.builtin.debug:
+        msg: "Charon API health check: {{ charon_api_test.status | default('FAILED') }}"
+
+    - name: Test consensus API endpoint
+      ansible.builtin.uri:
+        url: "http://{{ consensus_docker_container_name }}:{{ consensus_client_http_api_port }}/eth/v1/node/health"
+        method: GET
+        timeout: 5
+      register: consensus_api_test
+      failed_when: false
+
+    - name: Display consensus API test result
+      ansible.builtin.debug:
+        msg: "Consensus API health check: {{ consensus_api_test.status | default('FAILED') }}"
+
+    # ============================================================================
+    # 9. SUMMARY REPORT
+    # ============================================================================
+    
+    - name: Generate verification summary
+      ansible.builtin.debug:
+        msg: |
+          ============================================================================
+          ETHEREUM STAKING SETUP VERIFICATION SUMMARY
+          ============================================================================
+          
+          NETWORK STATUS:
+          - Docker network exists: {{ network_info.exists | ternary('✓', '✗') }}
+          
+          CONTAINER STATUS:
+          {% for result in container_status.results %}
+          {% if result.container is defined %}
+          - {{ result.container.Names[0] }}: {{ result.container.State.Status | ternary('✓ Running', '✗ Not Running') }}
+          {% else %}
+          - {{ result.item }}: ✗ Not Found
+          {% endif %}
+          {% endfor %}
+          
+          KEY FILES:
+          {% for result in charon_key_files.results %}
+          - {{ result.item | basename }}: {{ result.stat.exists | ternary('✓', '✗') }}
+          {% endfor %}
+          
+          PUBLIC KEY MATCH:
+          {% if charon_key_files.results[0].stat.exists and (validator_key_files.results[2].stat.exists or validator_key_files.results[3].stat.exists) %}
+          - Cluster-lock vs Validator-def: {{ (cluster_lock_pubkey.stdout | default('')) == (validator_def_pubkey.stdout | default('')) | ternary('✓ MATCH', '✗ MISMATCH') }}
+          {% else %}
+          - Public key comparison: ✗ Cannot compare (files missing)
+          {% endif %}
+          
+          API CONNECTIVITY:
+          - Charon API: {{ charon_api_test.status | default('✗ FAILED') }}
+          - Consensus API: {{ consensus_api_test.status | default('✗ FAILED') }}
+          
+          ============================================================================ 
