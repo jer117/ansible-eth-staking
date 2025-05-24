@@ -34,6 +34,7 @@
     owner: "root"
     group: "root"
     mode: "0600"
+  when: keystore_file is defined
 
 # Set docker ports
 - name: Set validator docker ports
@@ -60,9 +61,13 @@
       - "{{ validator_data_mount }}:/data"
     command: >
       lighthouse validator_client
+      {% if charon_enabled %}
+      --beacon-nodes http://{{ charon_container_name }}:{{ charon_validator_api_port }}
+      {% else %}
       --beacon-nodes http://{{ consensus_docker_container_name }}:{{ consensus_client_http_api_port }}
       --validators-dir /validators/keys
       --secrets-dir /validators/passwords
+      {% endif %}
       --graffiti "{{ validator_graffiti }}"
       --suggested-fee-recipient {{ withdrawal_account_address }}
       --init-slashing-protection
