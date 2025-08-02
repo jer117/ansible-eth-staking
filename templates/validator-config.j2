@@ -1,0 +1,54 @@
+##############
+# Data
+datadir: /opt/data
+
+##############
+# Connectivity
+beacon-rest-api-provider: "http://{{ charon_container_name }}:{{ charon_validator_api_port }}"
+monitoring-host: 0.0.0.0
+grpc-gateway-host: 0.0.0.0
+monitoring-port: {{ prysm_validator_monitoring_port }}
+# grpc-gateway-port: {{ validator_key_manager_port }}
+# tls-cert: /data/consensus/consensusTLS.crt
+
+# testnets
+hoodi: {{ (environment == "hoodi") | lower }}
+
+##############
+# Slashing protection
+enable-local-protection: true
+enable-doppelganger: true
+
+# disabled in v2.0.2 due to issues
+enable-external-slasher-protection: false
+
+#####################################
+# Validator accounts & key management
+wallet-dir: /config/
+wallet-password-file: /config/validator_password.txt
+
+#####################################
+# validator level fee recipients
+{% if key_manager_api_enabled is defined and key_manager_api_enabled and proto_config.suggested_fee_recipient is defined and config.suggested_fee_recipient.enabled %}
+# proposer-settings-file: /config/proposer_config.yaml
+{% endif %}
+
+### UI
+# web: {{ key_manager_api_enabled | bool }}
+
+# Accept consensuss terms
+accept-terms-of-use: true
+
+# Fee recipient
+
+{% if proto_config.suggested_fee_recipient is defined and proto_config.suggested_fee_recipient.enabled %}
+suggested-fee-recipient: {{ proto_config.suggested_fee_recipient.standard_ethereum_wallet_address }}
+{% endif %}
+
+# mev
+{% if mev_boost_enabled %}
+enable-builder: true
+{% endif %}
+
+distributed: true
+enable-beacon-rest-api: true

@@ -12,6 +12,15 @@
     - "{{ execution_config_mount }}"
     - "{{ execution_data_mount }}"
 
+- name: Copy JWT token to execution client
+  become_user: root
+  become: true
+  ansible.builtin.copy:
+    src: "{{ consensus_config_mount }}/exec_token/token"
+    dest: "{{ execution_config_mount }}/token"
+    mode: "0644"
+    remote_src: true
+
 # Set docker ports
 - name: Set execution docker ports
   ansible.builtin.set_fact:

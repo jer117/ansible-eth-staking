@@ -4,6 +4,7 @@ Ansible role for eth home stakers.
 ## Key Features
 
 - **Multi-client support**: Nethermind and Lighthouse, plus Obol Charon
+- **Validator client options**: Lighthouse or Lodestar for distributed validation
 - **Specialized images**: Optimized Docker images.
 - **Monitoring**: Grafana, Prometheus, Node Exporter, and cAdvisor
 - **Security**: Firewall, JWT secrets, secure defaults
@@ -111,4 +112,74 @@ docker run -u $(id -u):$(id -g) --rm -v "$(pwd)/:/opt/charon" obolnetwork/charon
 
 # Cluster Dashboard
 https://api.obol.tech/lock/0xC806E59C8D7CB721F4231582C57CC1EFDC7C43613B0F22A9BE1BFE50FD443EBD/launchpad
+
+## Validator Client Options
+
+When using Obol Charon (distributed validator), you can choose between two validator clients:
+
+### Lighthouse (Default)
+- **Image**: `sigp/lighthouse:v7.0.0`
+- **Configuration**: Set `validator_client: "lighthouse"` in your secrets file
+- **Features**: Full MEV boost support, distributed validator mode
+
+### Lodestar
+- **Image**: `chainsafe/lodestar:v1.29.0`
+- **Configuration**: Set `validator_client: "lodestar"` in your secrets file
+- **Features**: TypeScript-based client, distributed validator mode, MEV boost support
+
+### Configuration Example
+```yaml
+# In your secrets.yml file
+charon_enabled: "true"
+mev_boost_enabled: "true"
+validator_client: "lodestar"  # Options: "lighthouse" or "lodestar"
+```
+
+**Note**: The validator client selection only applies when Charon is enabled. When Charon is disabled, Lighthouse is used as the default validator client.
+
+## Debugging Commands
+
+### Check Execution Client Sync Status
+```bash
+# Check if execution client is syncing
+curl -X POST -H "Content-Type: application/json" --data '{"jsonrpc":"2.0","method":"eth_syncing","params":[],"id":1}' http://localhost:8544
+
+# Check current block number
+curl -X POST -H "Content-Type: application/json" --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' http://localhost:8544
+
+# Check chain ID
+curl -X POST -H "Content-Type: application/json" --data '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}' http://localhost:8544
+```
+
+### Check Consensus Client Status
+```bash
+# Check beacon node sync status
+curl http://localhost:5052/eth/v1/node/syncing
+
+# Check beacon node health
+curl http://localhost:5052/eth/v1/node/health
+
+# Get current slot
+curl http://localhost:5052/eth/v1/beacon/headers/head
+
+# Check if beacon node is ready for validator duties
+curl http://localhost:5052/eth/v1/node/readiness
+```
+
+### Check Charon Status
+```bash
+# Check Charon health
+curl http://localhost:3620/health
+
+# Check Charon metrics
+curl http://localhost:3620/metrics
+```
+
+### Check Validator Client Status
+```bash
+# Check Lodestar validator client health (if using Charon)
+curl http://localhost:5062/health
+
+# Check Lighthouse validator client health
+curl http://localhost:5062/health
 ```

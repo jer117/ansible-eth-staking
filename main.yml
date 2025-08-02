@@ -1,10 +1,6 @@
 ---
 - hosts: all
   tasks:
-    - name: Load secret variables
-      ansible.builtin.include_vars: secrets.yml
-      tags: [always]
-
     - name: Check if host vars file exists
       ansible.builtin.stat:
         path: "host_vars/{{ inventory_hostname }}.yml"
