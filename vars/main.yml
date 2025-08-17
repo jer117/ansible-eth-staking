@@ -46,6 +46,10 @@ charon_container_name: charon
 charon_relay_address: https://0.relay.obol.tech
 charon_enabled: "true"
 
+# Validator client selection (lighthouse or lodestar)
+# This should be set in your secrets file to override the default
+# validator_client: "lighthouse"
+
 # mev
 mev_boost_docker_image: "flashbots/mev-boost:1.9"
 mev_boost_enabled: "true"

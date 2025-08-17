@@ -34,11 +34,22 @@
     owner: "root"
     group: "root"
     mode: "0600"
+  when: charon_enabled == 'false' and mev_boost_enabled == 'false'
 
 # Set docker ports
 - name: Set validator docker ports
   ansible.builtin.set_fact:
     validator_published_ports: "{{ validator_published_ports }}"
+
+- name: Create Lodestar run script
+  become: true
+  ansible.builtin.template:
+    src: templates/run.sh.j2
+    dest: "{{ validator_data_mount }}/run.sh"
+    owner: "root"
+    group: "root"
+    mode: "0755"
+  when: charon_enabled == 'true' and validator_client == 'lodestar'
 
 - name: Start/Restart the validator client docker container
   become: true
@@ -75,4 +86,32 @@
       --metrics-address 0.0.0.0
       --metrics-port {{ validator_monitoring_port }}
       --network {{ network }}
-      --disable-auto-discover 
+      --disable-auto-discover
+  when: charon_enabled == 'false' and mev_boost_enabled == 'false' and validator_client == 'lighthouse'
+
+- name: Start/Restart the Lodestar validator client docker container (with MEV boost)
+  become_user: root
+  become: true
+  community.docker.docker_container:
+    image: "{{ lodestar_image }}"
+    keep_volumes: true
+    name: "{{ validator_container_name }}"
+    networks:
+      - name: "eth-staking-network-net"
+    networks_cli_compatible: true
+    published_ports: "{{ validator_published_ports }}"
+    restart: true
+    restart_policy: unless-stopped
+    state: started
+    volumes: 
+      - "/root/.charon/validator_keys:/home/charon/validator_keys"
+      - "{{ validator_data_mount }}:/opt/data"
+    env:
+      BEACON_NODE_ADDRESS: "http://{{ charon_container_name }}:{{ charon_validator_api_port }}"
+      NETWORK: "{{ network }}"
+      BUILDER_API_ENABLED: "{{ mev_boost_enabled }}"
+      BUILDER_SELECTION: "builderalways"
+      WITHDRAWAL_ACCOUNT_ADDRESS: "{{ withdrawal_account_address }}"
+      NODE_OPTIONS: "--max-old-space-size=4096"
+    entrypoint: /opt/data/run.sh
+  when: charon_enabled == 'true' and mev_boost_enabled == 'true' and validator_client == 'lodestar'

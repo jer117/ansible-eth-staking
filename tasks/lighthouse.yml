@@ -69,7 +69,7 @@
       {% if network == "mainnet" %}
       --checkpoint-sync-url https://mainnet.checkpoint.sigp.io
       {% elif network == "hoodi" %}
-      --checkpoint-sync-url https://hoodi.beaconstate.info/
+      --checkpoint-sync-url https://beaconstate-hoodi.chainsafe.io
       {% elif network == "sepolia" %}
       --checkpoint-sync-url https://sepolia.checkpoint.sigp.io
       {% endif %}

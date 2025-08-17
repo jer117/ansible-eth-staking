@@ -1,0 +1,21 @@
+#!/bin/bash
+
+set -e
+
+if [ ! -f /config/direct/accounts/all-accounts.keystore.json ]; then
+    /app/cmd/validator/validator wallet create --wallet-dir=/config \
+        --wallet-password-file=/config/validator_password.txt \
+        --keymanager-kind=imported \
+        --accept-terms-of-use \
+        --holesky
+    for f in /opt/validator_keys/keystore-*.json; do
+        /app/cmd/validator/validator accounts import --keys-dir="$f" \
+            --wallet-dir=/config \
+            --wallet-password-file=/config/validator_password.txt \
+            --account-password-file="${f//json/txt}" \
+            --accept-terms-of-use
+    done
+    echo "All keys imported"
+fi
+/app/cmd/validator/validator --config-file=/config/validator-config.yaml
+exit 0
