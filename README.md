@@ -37,7 +37,7 @@ sudo ufw allow 8552/tcp  # Engine API
 sudo ufw allow 30304/tcp # P2P communication
 
 # Monitoring
-sudo ufw allow 3001/tcp  # Grafana
+sudo ufw allow 3000/tcp  # Grafana
 sudo ufw allow 9090/tcp  # Prometheus
 sudo ufw allow 24165/tcp # cAdvisor
 sudo ufw allow 9093/tcp  # AlertManager
