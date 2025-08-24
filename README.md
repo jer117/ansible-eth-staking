@@ -37,7 +37,7 @@ sudo ufw allow 8552/tcp  # Engine API
 sudo ufw allow 30304/tcp # P2P communication
 
 # Monitoring
-sudo ufw allow 3001/tcp  # Grafana
+sudo ufw allow 3000/tcp  # Grafana
 sudo ufw allow 9090/tcp  # Prometheus
 sudo ufw allow 24165/tcp # cAdvisor
 sudo ufw allow 9093/tcp  # AlertManager
@@ -182,4 +182,14 @@ curl http://localhost:5062/health
 
 # Check Lighthouse validator client health
 curl http://localhost:5062/health
+```
+
+### Debugging exec token issues or no space left on machine.
+```bash
+# Check that you are on root or home.
+cd
+
+# Clean up db and tokens then re run the role.
+docker stop eth-ansible-consensus-1 eth-ansible-execution-1 && docker rm eth-ansible-execution-1 eth-ansible-consensus-1 && sudo rm -rf .lighthouse/ .nethermind/
+
 ```

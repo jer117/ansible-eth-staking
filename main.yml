@@ -42,6 +42,10 @@
         name: eth-staking-network-net
         state: present
 
+    - name: Import Consensus
+      ansible.builtin.import_tasks: tasks/lighthouse.yml
+      tags: [consensus]
+
     - name: Include task execution
       ansible.builtin.import_tasks: tasks/nethermind.yml
       tags: [execution]
@@ -55,10 +59,6 @@
       ansible.builtin.import_tasks: tasks/charon.yml
       tags: [charon]
       when: charon_enabled == 'true'
-
-    - name: Import Consensus
-      ansible.builtin.import_tasks: tasks/lighthouse.yml
-      tags: [consensus]
 
     - name: Import Validator
       ansible.builtin.import_tasks: tasks/validator.yml

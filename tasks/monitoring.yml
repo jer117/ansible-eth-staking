@@ -44,14 +44,20 @@
     mode: "0644"
   register: dashboard_cfg
 
-- name: Copy Home Staking dashboard
-  template:
-    src: home_staking_dashboard.json
-    dest: "{{ host_config_mount }}/grafana/provisioning/dashboards/home_staking_dashboard.json"
+- name: Copy all dashboards
+  copy:
+    src: "{{ item }}"
+    dest: "{{ host_config_mount }}/grafana/provisioning/dashboards/{{ item | basename }}"
     owner: root
     group: root
     mode: "0644"
-  register: home_staking_dashboard_cfg
+  with_items:
+    - "files/dashboards/system-monitoring-dashboard.json"
+    - "files/dashboards/enhanced-validator-dashboard.json"
+    - "files/dashboards/node-exporter-dashboard.json"
+    - "files/dashboards/enhanced-consensus-client-dashboard.json"
+    - "files/dashboards/enhanced-execution-client-dashboard.json"
+  register: dashboard_files_cfg
 
 - name: Copy alert rules
   template:
@@ -97,7 +103,7 @@
 
 - name: Monitoring config changed
   ansible.builtin.set_fact:
-    cfg_changed: "{{ prom_cfg.changed | bool or graf_cfg.changed | bool or datasource_cfg.changed | bool or dashboard_cfg.changed | bool or home_staking_dashboard_cfg.changed | bool or alertrules_cfg.changed | bool or alertmanager_cfg.changed | bool }}"
+    cfg_changed: "{{ prom_cfg.changed | bool or graf_cfg.changed | bool or datasource_cfg.changed | bool or dashboard_cfg.changed | bool or dashboard_files_cfg.changed | bool or alertrules_cfg.changed | bool or alertmanager_cfg.changed | bool }}"
 
 - name: Start node exporter
   become_user: root
@@ -200,7 +206,7 @@
     networks_cli_compatible: true
     privileged: true
     ports:
-      - "3001:3001"
+      - "3000:3000"
     env:
       GF_SECURITY_ADMIN_PASSWORD: "{{ GRAFANA_ADMIN_PASSWORD }}"
       GF_INSTALL_PLUGINS: "grafana-piechart-panel,grafana-clock-panel"

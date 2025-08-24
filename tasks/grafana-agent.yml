@@ -11,7 +11,27 @@ metrics:
         - job_name: 'cadvisor'
           static_configs:
             - targets: ['cadvisor:8080']
-        - job_name: 'prometheus'
-          metrics_path: /metrics/prometheus
+        - job_name: 'nethermind-execution'
           static_configs:
             - targets: ["{{ execution_docker_container_name }}:{{ execution_monitoring_port }}"]
+        - job_name: 'lighthouse-consensus'
+          static_configs:
+            - targets: ["{{ consensus_docker_container_name }}:{{ consensus_monitoring_port }}"]
+        - job_name: 'validator-client'
+          static_configs:
+            - targets: ["{{ validator_docker_container_name }}:{{ validator_monitoring_port }}"]
+        - job_name: 'charon'
+          static_configs:
+            - targets: ["{{ charon_container_name }}:{{ charon_monitoring_port }}"]
+        - job_name: 'mev-boost'
+          static_configs:
+            - targets: ["{{ mev_boost_container_name }}:{{ mev_boost_api_port }}"]
+        - job_name: 'grafana-agent'
+          static_configs:
+            - targets: ['localhost:{{ grafana_agent_http_port }}']
+        - job_name: 'alertmanager'
+          static_configs:
+            - targets: ['alertmanager:9093']
+        - job_name: 'prometheus'
+          static_configs:
+            - targets: ['{{ prometheus_name }}:9090']

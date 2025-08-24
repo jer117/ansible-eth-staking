@@ -94,7 +94,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "up{job=\"execution_client\"}",
+          "expr": "up{job=\"nethermind-execution\"} or nethermind_block_highest > 0",
           "legendFormat": "Execution Client",
           "range": true,
           "refId": "A"
@@ -117,14 +117,14 @@
             {
               "options": {
                 "0": {
-                  "color": "orange",
+                  "color": "red",
                   "index": 0,
-                  "text": "Syncing"
+                  "text": "No Data"
                 },
                 "1": {
                   "color": "green",
                   "index": 1,
-                  "text": "Synced"
+                  "text": "Data Available"
                 }
               },
               "type": "value"
@@ -134,7 +134,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "orange",
+                "color": "red",
                 "value": null
               },
               {
@@ -149,10 +149,10 @@
       "gridPos": {
         "h": 8,
         "w": 6,
-        "x": 6,
+        "x": 18,
         "y": 0
       },
-      "id": 2,
+      "id": 12,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -175,13 +175,13 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "nethermind_sync_peers_best_block - nethermind_block_highest < 5",
-          "legendFormat": "Sync Status",
+          "expr": "up{job=\"nethermind-execution\"}",
+          "legendFormat": "Scrape Status",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Sync Status",
+      "title": "Metrics Scrape Status",
       "type": "stat"
     },
     {
@@ -207,18 +207,17 @@
                 "value": 80
               }
             ]
-          },
-          "unit": "none"
+          }
         },
         "overrides": []
       },
       "gridPos": {
         "h": 8,
         "w": 6,
-        "x": 12,
+        "x": 6,
         "y": 0
       },
-      "id": 3,
+      "id": 2,
       "options": {
         "orientation": "auto",
         "reduceOptions": {
@@ -239,13 +238,13 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "nethermind_block_highest",
-          "legendFormat": "Current Block",
+          "expr": "nethermind_sync_peers_best_block - nethermind_block_highest < 5",
+          "legendFormat": "Sync Status",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Current Block",
+      "title": "Sync Status",
       "type": "gauge"
     },
     {
@@ -308,19 +307,19 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 6,
-        "x": 18,
+        "w": 12,
+        "x": 12,
         "y": 0
       },
-      "id": 4,
+      "id": 3,
       "options": {
         "legend": {
           "calcs": [
-            "mean",
-            "lastNotNull"
+            "sum",
+            "max"
           ],
           "displayMode": "table",
-          "placement": "bottom",
+          "placement": "right",
           "showLegend": true
         },
         "tooltip": {
@@ -336,13 +335,13 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "nethermind_network_peers_count",
-          "legendFormat": "Peers",
+          "expr": "nethermind_block_highest",
+          "legendFormat": "Block Height",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Connected Peers",
+      "title": "Block Height",
       "type": "timeseries"
     },
     {
@@ -399,7 +398,7 @@
               }
             ]
           },
-          "unit": "Bps"
+          "unit": "none"
         },
         "overrides": []
       },
@@ -409,11 +408,108 @@
         "x": 0,
         "y": 8
       },
+      "id": 4,
+      "options": {
+        "legend": {
+          "calcs": [
+            "sum",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "9.5.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "expr": "nethermind_network_peers_count",
+          "legendFormat": "Connected Peers",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Network Peers",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
       "id": 5,
       "options": {
         "legend": {
           "calcs": [
-            "mean",
+            "sum",
             "max"
           ],
           "displayMode": "table",
@@ -434,7 +530,7 @@
           },
           "editorMode": "code",
           "expr": "rate(nethermind_network_bytes_received[5m])",
-          "legendFormat": "RX",
+          "legendFormat": "Bytes Received",
           "range": true,
           "refId": "A"
         },
@@ -445,8 +541,7 @@
           },
           "editorMode": "code",
           "expr": "rate(nethermind_network_bytes_sent[5m])",
-          "hide": false,
-          "legendFormat": "TX",
+          "legendFormat": "Bytes Sent",
           "range": true,
           "refId": "B"
         }
@@ -508,21 +603,21 @@
               }
             ]
           },
-          "unit": "txs"
+          "unit": "none"
         },
         "overrides": []
       },
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 12,
-        "y": 8
+        "x": 0,
+        "y": 16
       },
       "id": 6,
       "options": {
         "legend": {
           "calcs": [
-            "mean",
+            "sum",
             "max"
           ],
           "displayMode": "table",
@@ -543,10 +638,9 @@
           },
           "editorMode": "code",
           "expr": "rate(nethermind_txpool_pending_transactions_total[5m])",
-          "hide": false,
-          "legendFormat": "Pending",
+          "legendFormat": "Pending Transactions",
           "range": true,
-          "refId": "B"
+          "refId": "A"
         },
         {
           "datasource": {
@@ -555,13 +649,12 @@
           },
           "editorMode": "code",
           "expr": "rate(nethermind_txpool_processed_transactions_total[5m])",
-          "hide": false,
-          "legendFormat": "Processed",
+          "legendFormat": "Processed Transactions",
           "range": true,
-          "refId": "C"
+          "refId": "B"
         }
       ],
-      "title": "Transaction Rate",
+      "title": "Transaction Pool",
       "type": "timeseries"
     },
     {
@@ -625,14 +718,14 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 0,
+        "x": 12,
         "y": 16
       },
       "id": 7,
       "options": {
         "legend": {
           "calcs": [
-            "mean",
+            "sum",
             "max"
           ],
           "displayMode": "table",
@@ -653,12 +746,325 @@
           },
           "editorMode": "code",
           "expr": "time() - nethermind_block_timestamp",
-          "legendFormat": "Block time behind now",
+          "legendFormat": "Block Age",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Block Time Behind Current Time",
+      "title": "Block Age",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 24
+      },
+      "id": 8,
+      "options": {
+        "legend": {
+          "calcs": [
+            "sum",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "9.5.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "expr": "nethermind_memory_process_private_mb",
+          "legendFormat": "Private Memory",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "expr": "nethermind_memory_process_virtual_mb",
+          "legendFormat": "Virtual Memory",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Memory Usage",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 24
+      },
+      "id": 9,
+      "options": {
+        "legend": {
+          "calcs": [
+            "sum",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "9.5.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "expr": "nethermind_eip1559transactions_ratio",
+          "legendFormat": "EIP-1559 Transactions Ratio",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "EIP-1559 Transactions Ratio",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 32
+      },
+      "id": 10,
+      "options": {
+        "legend": {
+          "calcs": [
+            "sum",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "9.5.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "expr": "nethermind_evm_exceptions",
+          "legendFormat": "EVM Exceptions",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "expr": "nethermind_failed_block_seals",
+          "legendFormat": "Failed Block Seals",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Errors and Exceptions",
       "type": "timeseries"
     },
     {
@@ -723,13 +1129,13 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 16
+        "y": 32
       },
-      "id": 8,
+      "id": 11,
       "options": {
         "legend": {
           "calcs": [
-            "mean",
+            "sum",
             "max"
           ],
           "displayMode": "table",
@@ -749,8 +1155,8 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "nethermind_memory_process_private_mb",
-          "legendFormat": "Process Private Memory",
+          "expr": "nethermind_fast_bodies",
+          "legendFormat": "Fast Bodies",
           "range": true,
           "refId": "A"
         },
@@ -760,36 +1166,45 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "nethermind_memory_process_virtual_mb",
-          "hide": false,
-          "legendFormat": "Process Virtual Memory",
+          "expr": "nethermind_fast_headers",
+          "legendFormat": "Fast Headers",
           "range": true,
           "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "expr": "nethermind_fast_receipts",
+          "legendFormat": "Fast Receipts",
+          "range": true,
+          "refId": "C"
         }
       ],
-      "title": "Memory Usage (MB)",
+      "title": "Fast Sync Components",
       "type": "timeseries"
     }
   ],
-  "refresh": "10s",
+  "refresh": "5s",
   "schemaVersion": 38,
   "style": "dark",
   "tags": [
     "ethereum",
-    "nethermind",
-    "execution"
+    "execution",
+    "nethermind"
   ],
   "templating": {
     "list": []
   },
   "time": {
-    "from": "now-6h",
+    "from": "now-1h",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "",
-  "title": "Ethereum Execution Client Dashboard",
-  "uid": "ethereum-execution",
-  "version": 1,
-  "weekStart": ""
+  "title": "Enhanced Nethermind Execution Client Dashboard",
+  "uid": "nethermind-enhanced",
+  "version": 1
 } 
