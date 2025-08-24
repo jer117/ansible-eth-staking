@@ -1,10 +1,4 @@
 ---
-- name: Check if cluster definition exists
-  become: false
-  ansible.builtin.stat:
-    path: "/root/.charon/cluster-definition.json"
-  register: cluster_definition_exists
-
 - name: Check if cluster lock exists
   become: false
   ansible.builtin.stat:
@@ -30,16 +24,6 @@
     mode: "0666"
   no_log: true
   when: host_charon_enr_private_key is defined
-
-- name: Copy cluster definition
-  ansible.builtin.copy:
-    content: "{{ lookup('file', 'cluster-definition.json') }}"
-    dest: "/root/.charon/cluster-definition.json"
-    owner: "root"
-    group: "root"
-    mode: "0666"
-    force: true
-  register: cluster_def_copy
 
 - name: Start/Restart the Charon client docker container
   community.general.docker_container:
@@ -74,4 +58,4 @@
     state: started
     volumes:
       - "/root/.charon:/opt/charon:rw"
-  when: cluster_definition_exists.stat.exists and cluster_lock.stat.exists
+  when: cluster_lock.stat.exists

@@ -94,7 +94,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "up{job=\"beacon_node\"}",
+          "expr": "lighthouse_info",
           "legendFormat": "Beacon Node",
           "range": true,
           "refId": "A"
@@ -117,14 +117,14 @@
             {
               "options": {
                 "0": {
-                  "color": "green",
+                  "color": "red",
                   "index": 0,
-                  "text": "Synced"
+                  "text": "No Data"
                 },
                 "1": {
-                  "color": "orange",
+                  "color": "green",
                   "index": 1,
-                  "text": "Syncing"
+                  "text": "Data Available"
                 }
               },
               "type": "value"
@@ -134,11 +134,11 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "red",
                 "value": null
               },
               {
-                "color": "orange",
+                "color": "green",
                 "value": 1
               }
             ]
@@ -149,10 +149,10 @@
       "gridPos": {
         "h": 8,
         "w": 6,
-        "x": 6,
+        "x": 18,
         "y": 0
       },
-      "id": 2,
+      "id": 12,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -175,13 +175,13 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "lighthouse_beacon_node_syncing",
-          "legendFormat": "Sync Status",
+          "expr": "up{job=\"lighthouse-consensus\"}",
+          "legendFormat": "Scrape Status",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Beacon Sync Status",
+            "title": "Metrics Scrape Status",
       "type": "stat"
     },
     {
@@ -207,18 +207,17 @@
                 "value": 80
               }
             ]
-          },
-          "unit": "none"
+          }
         },
         "overrides": []
       },
       "gridPos": {
         "h": 8,
         "w": 6,
-        "x": 12,
+        "x": 6,
         "y": 0
       },
-      "id": 3,
+      "id": 2,
       "options": {
         "orientation": "auto",
         "reduceOptions": {
@@ -239,13 +238,13 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "lighthouse_beacon_slot",
-          "legendFormat": "Current Slot",
+          "expr": "lighthouse_beacon_node_syncing",
+          "legendFormat": "Sync Status",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Current Slot",
+      "title": "Sync Status",
       "type": "gauge"
     },
     {
@@ -256,7 +255,37 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "thresholds"
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           },
           "mappings": [],
           "thresholds": {
@@ -278,24 +307,25 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 6,
-        "x": 18,
+        "w": 12,
+        "x": 12,
         "y": 0
       },
-      "id": 4,
+      "id": 3,
       "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
+        "legend": {
           "calcs": [
-            "lastNotNull"
+            "sum",
+            "max"
           ],
-          "fields": "",
-          "values": false
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
         },
-        "textMode": "auto"
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
       },
       "pluginVersion": "9.5.1",
       "targets": [
@@ -305,14 +335,14 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "lighthouse_beacon_head_state_root",
-          "legendFormat": "Head State",
+          "expr": "lighthouse_beacon_slot",
+          "legendFormat": "Current Slot",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Head State Root",
-      "type": "stat"
+      "title": "Current Slot",
+      "type": "timeseries"
     },
     {
       "datasource": {
@@ -378,11 +408,11 @@
         "x": 0,
         "y": 8
       },
-      "id": 5,
+      "id": 4,
       "options": {
         "legend": {
           "calcs": [
-            "mean",
+            "sum",
             "max"
           ],
           "displayMode": "table",
@@ -402,13 +432,13 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "rate(lighthouse_beacon_eth1_blocks_imported_total[5m])",
-          "legendFormat": "Blocks Imported Rate",
+          "expr": "lighthouse_beacon_head_state_root",
+          "legendFormat": "Head State Root",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "ETH1 Blocks Import Rate",
+      "title": "Head State Root",
       "type": "timeseries"
     },
     {
@@ -475,11 +505,108 @@
         "x": 12,
         "y": 8
       },
+      "id": 5,
+      "options": {
+        "legend": {
+          "calcs": [
+            "sum",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "9.5.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "expr": "rate(lighthouse_beacon_eth1_blocks_imported_total[5m])",
+          "legendFormat": "ETH1 Blocks Imported",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "ETH1 Blocks Imported",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      },
       "id": 6,
       "options": {
         "legend": {
           "calcs": [
-            "mean",
+            "sum",
             "max"
           ],
           "displayMode": "table",
@@ -569,14 +696,14 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 0,
+        "x": 12,
         "y": 16
       },
       "id": 7,
       "options": {
         "legend": {
           "calcs": [
-            "mean",
+            "sum",
             "max"
           ],
           "displayMode": "table",
@@ -659,21 +786,21 @@
               }
             ]
           },
-          "unit": "binBps"
+          "unit": "none"
         },
         "overrides": []
       },
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 12,
-        "y": 16
+        "x": 0,
+        "y": 24
       },
       "id": 8,
       "options": {
         "legend": {
           "calcs": [
-            "mean",
+            "sum",
             "max"
           ],
           "displayMode": "table",
@@ -693,8 +820,8 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "rate(lighthouse_network_bytes_total{direction=\"in\"}[5m])",
-          "legendFormat": "RX",
+          "expr": "beacon_op_pool_attestations_total",
+          "legendFormat": "Attestations in Pool",
           "range": true,
           "refId": "A"
         },
@@ -704,36 +831,359 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "rate(lighthouse_network_bytes_total{direction=\"out\"}[5m])",
-          "hide": false,
-          "legendFormat": "TX",
+          "expr": "beacon_op_pool_attester_slashings_total",
+          "legendFormat": "Attester Slashings",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "expr": "beacon_op_pool_proposer_slashings_total",
+          "legendFormat": "Proposer Slashings",
+          "range": true,
+          "refId": "C"
+        }
+      ],
+      "title": "Operation Pool",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "gwei"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 24
+      },
+      "id": 9,
+      "options": {
+        "legend": {
+          "calcs": [
+            "sum",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "9.5.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "expr": "beacon_participation_curr_epoch_target_attesting_gwei_progressive_total",
+          "legendFormat": "Current Epoch Target Attesting",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "expr": "beacon_participation_current_epoch_active_gwei_total",
+          "legendFormat": "Current Epoch Active",
           "range": true,
           "refId": "B"
         }
       ],
-      "title": "P2P Network Traffic",
+      "title": "Participation Metrics",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 32
+      },
+      "id": 10,
+      "options": {
+        "legend": {
+          "calcs": [
+            "sum",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "9.5.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "expr": "light_client_finality_update_verification_success_total",
+          "legendFormat": "Finality Update Verifications",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "expr": "light_client_optimistic_update_verification_success_total",
+          "legendFormat": "Optimistic Update Verifications",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Light Client Verifications",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 32
+      },
+      "id": 11,
+      "options": {
+        "legend": {
+          "calcs": [
+            "sum",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "9.5.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "expr": "rate(beacon_attestation_processing_apply_to_agg_pool_sum[5m]) / rate(beacon_attestation_processing_apply_to_agg_pool_count[5m])",
+          "legendFormat": "Attestation Processing Time",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Attestation Processing Performance",
       "type": "timeseries"
     }
   ],
-  "refresh": "10s",
+  "refresh": "5s",
   "schemaVersion": 38,
   "style": "dark",
   "tags": [
     "ethereum",
+    "consensus",
     "lighthouse",
-    "consensus"
+    "beacon"
   ],
   "templating": {
     "list": []
   },
   "time": {
-    "from": "now-6h",
+    "from": "now-1h",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "",
-  "title": "Ethereum Consensus Client Dashboard",
-  "uid": "ethereum-consensus",
-  "version": 1,
-  "weekStart": ""
+  "title": "Enhanced Lighthouse Consensus Client Dashboard",
+  "uid": "lighthouse-enhanced",
+  "version": 1
 } 
