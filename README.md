@@ -5,7 +5,8 @@ Ansible role for eth home stakers.
 
 - **Multi-client support**: Nethermind and Lighthouse, plus Obol Charon
 - **Validator client options**: Lighthouse or Lodestar for distributed validation
-- **Specialized images**: Optimized Docker images.
+- **Specialized images**: Optimized Docker images
+- **Web UI**: Semaphore UI for easy Ansible playbook execution
 - **Monitoring**: Grafana, Prometheus, Node Exporter, and cAdvisor
 - **Security**: Firewall, JWT secrets, secure defaults
 - **Automation**: Backups, health checks, resource management, automatic resets
@@ -36,8 +37,8 @@ sudo ufw allow 8547/tcp  # JSON-RPC API
 sudo ufw allow 8552/tcp  # Engine API
 sudo ufw allow 30304/tcp # P2P communication
 
-# Monitoring
-sudo ufw allow 3000/tcp  # Grafana
+# Monitoring and Management
+sudo ufw allow 3000/tcp  # Grafana and Semaphore UI
 sudo ufw allow 9090/tcp  # Prometheus
 sudo ufw allow 24165/tcp # cAdvisor
 sudo ufw allow 9093/tcp  # AlertManager
@@ -55,17 +56,43 @@ sudo ufw status verbose
 # Clone repository
 git clone https://github.com/hydepwns/ansible-eth-staking.git && cd ansible-eth-staking
 
-# Install requirements on server in question
-ansible-galaxy collection install -r requirements.yaml
+# Install requirements
 pip install -r requirements.txt
+ansible-galaxy collection install -r requirements.yml
 
-# Configure inventory
-cp example-inventory.yaml inventory.yaml
-cp example-secrets.yaml secrets.yaml
-# Edit inventory.yaml with your target hosts
+# Run the interactive setup script
+python3 setup.py
 
-# Run playbook
-ansible-playbook -i inventory main.yaml
+# The setup script will guide you through three deployment options:
+# 1. Ethereum Node Only (No validator)
+# 2. Single Validator Node with Lighthouse
+# 3. Distributed Validator Node with Charon and Lodestar
+#
+# Features:
+# - Interactive MEV-Boost relay selection for each network
+# - Support for multiple networks (mainnet, holesky, sepolia, hoodi)
+# - Pre-configured checkpoint sync URLs
+# - Automated configuration generation
+#
+# The script will create:
+# - secrets.yml with your configuration
+# - inventory file with your server information
+
+# Follow the next steps provided by the setup script
+# For validator setups, make sure to add your validator keys before running the playbook
+
+# Run the playbook
+ansible-playbook -i inventory ethereum-node.yml
+
+# Deploy Semaphore UI (Optional)
+- git
+- mysql-server
+- python3-pip
+
+ansible-playbook -i inventory playbooks/semaphore.yml -e "target_host=your_control_node"
+
+Once deployed, access the Semaphore UI at http://your_control_node:3000
+Default login: admin (customize in secrets.yml)
 ```
 
 # How to generate validator keys.
@@ -182,4 +209,14 @@ curl http://localhost:5062/health
 
 # Check Lighthouse validator client health
 curl http://localhost:5062/health
+```
+
+### Debugging exec token issues or no space left on machine.
+```bash
+# Check that you are on root or home.
+cd
+
+# Clean up db and tokens then re run the role.
+docker stop eth-ansible-consensus-1 eth-ansible-execution-1 && docker rm eth-ansible-execution-1 eth-ansible-consensus-1 && sudo rm -rf .lighthouse/ .nethermind/
+
 ```

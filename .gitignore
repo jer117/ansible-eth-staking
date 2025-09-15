@@ -3,3 +3,5 @@ validator_secrets.yml
 ansible.cfg
 inventory
 host_vars/*
+__pycache__/*
+__pycache__
