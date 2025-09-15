@@ -141,3 +141,266 @@ def get_sync_urls(network):
         'sepolia': sepolia_sync_urls,
         'hoodi': hoodi_sync_urls
     }.get(network.lower(), [])
+
+import os
+import yaml
+from typing import Dict, List, Optional
+
+def load_yaml_config(file_path: str) -> dict:
+    """Load configuration from a YAML file."""
+    try:
+        with open(file_path, 'r') as f:
+            return yaml.safe_load(f)
+    except FileNotFoundError:
+        return {}
+
+def get_charon_config(config_file: Optional[str] = None) -> Dict:
+    """
+    Get Charon configuration settings.
+    
+    Args:
+        config_file: Path to YAML configuration file. If not provided,
+                    will look for environment variables.
+    
+    Returns:
+        Dictionary containing Charon configuration
+    """
+    config = {}
+    
+    if config_file:
+        yaml_config = load_yaml_config(config_file)
+        config = {
+            'private_key': yaml_config.get('host_charon_enr_private_key'),
+            'name': yaml_config.get('charon_name'),
+            'operator_enrs': yaml_config.get('charon_operator_enrs'),
+            'fee_recipient_addresses': yaml_config.get('charon_fee_recipient_addresses'),
+            'withdrawal_addresses': yaml_config.get('charon_withdrawal_addresses'),
+            'num_validators': yaml_config.get('charon_num_validators'),
+            'is_leader': yaml_config.get('is_leader', False),
+            'enabled': yaml_config.get('charon_enabled', False)
+        }
+    else:
+        # Fallback to environment variables
+        config = {
+            'private_key': os.getenv('CHARON_PRIVATE_KEY'),
+            'name': os.getenv('CHARON_NAME'),
+            'operator_enrs': os.getenv('CHARON_OPERATOR_ENRS'),
+            'fee_recipient_addresses': os.getenv('CHARON_FEE_RECIPIENT_ADDRESSES'),
+            'withdrawal_addresses': os.getenv('CHARON_WITHDRAWAL_ADDRESSES'),
+            'num_validators': int(os.getenv('CHARON_NUM_VALIDATORS', '0')),
+            'is_leader': os.getenv('CHARON_IS_LEADER', 'false').lower() == 'true',
+            'enabled': os.getenv('CHARON_ENABLED', 'false').lower() == 'true'
+        }
+    
+    return {k: v for k, v in config.items() if v is not None}
+
+def get_validator_config(config_file: Optional[str] = None) -> Dict:
+    """
+    Get validator configuration settings.
+    
+    Args:
+        config_file: Path to YAML configuration file. If not provided,
+                    will look for environment variables.
+    
+    Returns:
+        Dictionary containing validator configuration
+    """
+    config = {}
+    
+    if config_file:
+        yaml_config = load_yaml_config(config_file)
+        validators = yaml_config.get('validators', [])
+        config = {
+            'public_keys': [v['public_key'] for v in validators if v.get('enabled', True)],
+            'withdrawal_address': yaml_config.get('withdrawal_account_address'),
+            'client': yaml_config.get('validator_client', 'lighthouse')
+        }
+    else:
+        # Fallback to environment variables
+        public_keys = os.getenv('VALIDATOR_PUBLIC_KEYS', '').split(',')
+        config = {
+            'public_keys': [key.strip() for key in public_keys if key.strip()],
+            'withdrawal_address': os.getenv('VALIDATOR_WITHDRAWAL_ADDRESS'),
+            'client': os.getenv('VALIDATOR_CLIENT', 'lighthouse')
+        }
+    
+    return {k: v for k, v in config.items() if v is not None}
+
+def create_host_config(
+    ip_address: str,
+    charon_private_key: str,
+    charon_name: str,
+    charon_operator_enrs: str,
+    charon_fee_recipient: str,
+    charon_withdrawal: str,
+    charon_num_validators: int,
+    validator_public_key: str,
+    is_leader: bool = False,
+    charon_enabled: bool = True,
+    validator_client: str = "lodestar",
+    cadvisor_enabled: bool = True
+) -> Dict:
+    """
+    Create a new host configuration dictionary.
+    
+    Args:
+        ip_address: The IP address of the host
+        charon_private_key: The Charon ENR private key
+        charon_name: The name for the Charon node
+        charon_operator_enrs: The operator ENRs string
+        charon_fee_recipient: The fee recipient address
+        charon_withdrawal: The withdrawal address
+        charon_num_validators: Number of validators
+        validator_public_key: The validator's public key
+        is_leader: Whether this node is a leader (default: False)
+        charon_enabled: Whether Charon is enabled (default: True)
+        validator_client: The validator client to use (default: "lodestar")
+        cadvisor_enabled: Whether cAdvisor is enabled (default: True)
+    
+    Returns:
+        Dictionary containing the host configuration
+    """
+    return {
+        # Charon Configuration
+        'charon_enabled': charon_enabled,
+        'is_leader': is_leader,
+        'host_charon_enr_private_key': charon_private_key,
+        'charon_name': charon_name,
+        'charon_operator_enrs': charon_operator_enrs,
+        'charon_fee_recipient_addresses': charon_fee_recipient,
+        'charon_withdrawal_addresses': charon_withdrawal,
+        'charon_num_validators': charon_num_validators,
+        'host_validator_public_key': validator_public_key,
+        
+        # Validator Configuration
+        'withdrawal_account_address': charon_fee_recipient,
+        'validator_client': validator_client,
+        
+        # Monitoring Configuration
+        'cadvisor_enabled': cadvisor_enabled,
+        
+        # Validator Keys
+        'validators': [
+            {
+                'public_key': validator_public_key,
+                'enabled': True
+            }
+        ]
+    }
+
+def save_host_config(ip_address: str, config: Dict, base_path: str = "host_vars") -> None:
+    """
+    Save a host configuration to a YAML file.
+    
+    Args:
+        ip_address: The IP address of the host
+        config: The configuration dictionary to save
+        base_path: The base path for host_vars (default: "host_vars")
+    """
+    os.makedirs(base_path, exist_ok=True)
+    file_path = os.path.join(base_path, f"{ip_address}.yml")
+    
+    with open(file_path, 'w') as f:
+        yaml.dump(config, f, default_flow_style=False, sort_keys=False)
+
+def update_host_config(
+    ip_address: str,
+    updates: Dict,
+    base_path: str = "host_vars"
+) -> None:
+    """
+    Update an existing host configuration.
+    
+    Args:
+        ip_address: The IP address of the host
+        updates: Dictionary containing the fields to update
+        base_path: The base path for host_vars (default: "host_vars")
+    """
+    file_path = os.path.join(base_path, f"{ip_address}.yml")
+    current_config = load_yaml_config(file_path)
+    
+    # Update the configuration
+    current_config.update(updates)
+    
+    # Save back to file
+    save_host_config(ip_address, current_config, base_path)
+
+def interactive_host_setup():
+    """Interactive setup for host configuration."""
+    print("\n=== Ethereum Node and Validator Setup ===\n")
+    
+    # Get host type
+    print("What type of node is this?")
+    print("1. Ethereum Node (No validator)")
+    print("2. Validator Node with Charon")
+    host_type = input("Enter choice (1/2): ").strip()
+    
+    # Common configuration
+    ip_address = input("\nEnter the IP address for this host: ").strip()
+    
+    if host_type == "1":
+        # Ethereum Node Configuration
+        config = {
+            'charon_enabled': False,
+            'cadvisor_enabled': True,
+            'validator_client': None,
+            'validators': []
+        }
+        save_host_config(ip_address, config)
+        print(f"\nCreated Ethereum node configuration for {ip_address}")
+        
+    elif host_type == "2":
+        # Validator Node Configuration
+        print("\n=== Charon Configuration ===")
+        
+        # Charon specific configuration
+        charon_private_key = input("Enter your pre-generated Charon private key: ").strip()
+        charon_name = input("Enter Charon node name: ").strip()
+        charon_operator_enrs = input("Enter Charon operator ENRs: ").strip()
+        charon_fee_recipient = input("Enter Charon fee recipient address: ").strip()
+        charon_withdrawal = input("Enter Charon withdrawal address: ").strip()
+        num_validators = int(input("Enter number of validators: ").strip())
+        is_leader = input("Is this a leader node? (yes/no): ").lower().strip() == 'yes'
+        
+        print("\n=== Validator Configuration ===")
+        validator_public_key = input("Enter validator public key: ").strip()
+        eth_withdrawal_address = input("Enter Ethereum withdrawal address: ").strip()
+        validator_client = input("Enter validator client (lighthouse/lodestar): ").strip().lower()
+        
+        # Create and save configuration
+        config = {
+            # Charon Configuration
+            'charon_enabled': True,
+            'is_leader': is_leader,
+            'host_charon_enr_private_key': charon_private_key,
+            'charon_name': charon_name,
+            'charon_operator_enrs': charon_operator_enrs,
+            'charon_fee_recipient_addresses': charon_fee_recipient,
+            'charon_withdrawal_addresses': charon_withdrawal,
+            'charon_num_validators': num_validators,
+            'host_validator_public_key': validator_public_key,
+            
+            # Validator Configuration
+            'withdrawal_account_address': eth_withdrawal_address,
+            'validator_client': validator_client,
+            
+            # Monitoring Configuration
+            'cadvisor_enabled': True,
+            
+            # Validator Keys
+            'validators': [
+                {
+                    'public_key': validator_public_key,
+                    'enabled': True
+                }
+            ]
+        }
+        
+        save_host_config(ip_address, config)
+        print(f"\nCreated validator node configuration for {ip_address}")
+    
+    else:
+        print("Invalid choice. Please run again and select 1 or 2.")
+
+if __name__ == "__main__":
+    interactive_host_setup()
