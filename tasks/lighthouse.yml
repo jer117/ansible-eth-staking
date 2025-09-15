@@ -24,10 +24,23 @@
   args:
     creates: "{{ consensus_config_mount }}/exec_token/token"
 
-# Set docker ports
-- name: Set beacon node docker ports
+# Load and verify required variables
+- name: Load host vars again if needed
+  ansible.builtin.include_vars:
+    file: "host_vars/{{ ansible_host }}.yml"
+  tags: [always]
+
+- name: Set required variables
   ansible.builtin.set_fact:
+    network: "{{ hostvars[inventory_hostname]['network'] | default(hostvars[inventory_hostname]['NETWORK_NAME']) }}"
+    withdrawal_account_address: "{{ hostvars[inventory_hostname]['withdrawal_account_address'] }}"
     beacon_published_ports: "{{ beacon_published_ports }}"
+
+- name: Debug variables
+  ansible.builtin.debug:
+    msg:
+      - "Network: {{ network }}"
+      - "Withdrawal Address: {{ withdrawal_account_address }}"
 
 - name: Start/Restart the beacon client docker container
   become_user: root

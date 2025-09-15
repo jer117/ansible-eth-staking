@@ -3,13 +3,13 @@
   tasks:
     - name: Check if host vars file exists
       ansible.builtin.stat:
-        path: "host_vars/{{ inventory_hostname }}.yml"
+        path: "host_vars/{{ ansible_host }}.yml"
       register: host_vars_file
       tags: [always]
 
     - name: Load host-specific variables
       ansible.builtin.include_vars:
-        file: "host_vars/{{ inventory_hostname }}.yml"
+        file: "host_vars/{{ ansible_host }}.yml"
       tags: [always]
       when: host_vars_file.stat.exists
 

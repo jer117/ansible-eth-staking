@@ -66,8 +66,9 @@ def configure_ethereum_node():
     config = {}
     
     # Network configuration
-    config["network"] = input("\nEnter network name (e.g., mainnet, hoodi) [default: hoodi]: ") or "hoodi"
-    config["NETWORK_NAME"] = config["network"]
+    network_input = input("\nEnter network name (e.g., mainnet, hoodi) [default: hoodi]: ") or "hoodi"
+    config["network"] = network_input.lower()  # ensure lowercase for consistency
+    config["NETWORK_NAME"] = network_input.lower()  # ensure both variables are set and consistent
     
     # MEV configuration
     config["mev_boost_enabled"] = get_boolean_input("\nDo you want to enable MEV-Boost?")
@@ -104,6 +105,9 @@ def configure_single_validator():
     # Set validator client to Lighthouse
     config["validator_client"] = "lighthouse"
     
+    # Get withdrawal address
+    config["withdrawal_account_address"] = input("\nEnter Ethereum withdrawal address: ").strip()
+    
     # Add placeholder for validators
     config["validators"] = [{
         "public_key": "0x000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
@@ -119,28 +123,31 @@ def configure_charon_validator():
     
     # Set validator client to Lodestar for Charon
     config["validator_client"] = "lodestar"
+    config["charon_enabled"] = "true"
     
     # Charon-specific configuration
     print("\nCharon Distributed Validator Configuration:")
+    
+    # Get Charon ENR private key
+    config["host_charon_enr_private_key"] = input("Enter your pre-generated Charon ENR private key: ").strip()
+    
+    # Get Charon configuration
+    config["charon_name"] = input("Enter Charon cluster name: ")
+    config["charon_operator_enrs"] = input("Enter Charon operator ENRs: ").strip()
+    config["charon_fee_recipient_addresses"] = input("Enter Charon fee recipient address: ").strip()
+    config["charon_withdrawal_addresses"] = input("Enter Charon withdrawal address: ").strip()
+    config["charon_num_validators"] = int(input("Enter number of validators in the cluster: "))
     config["is_leader"] = get_boolean_input("Is this node the Charon leader?", False)
     
-    if config["is_leader"] == "true":
-        config["charon_name"] = input("Enter Charon cluster name: ")
-        num_validators = int(input("Enter number of validators in the cluster: "))
-        config["charon_num_validators"] = num_validators
-        
-        print("\nYou will need to configure these after setup:")
-        print("1. charon_enr_private_key")
-        print("2. charon_operator_enrs")
-        print("3. charon_fee_recipient_addresses")
-        print("4. charon_withdrawal_addresses")
+    # Validator configuration
+    print("\nValidator Configuration:")
+    config["host_validator_public_key"] = input("Enter validator public key: ").strip()
+    config["withdrawal_account_address"] = input("Enter Ethereum withdrawal address: ").strip()
     
-    # Add placeholder for validators
+    # Add validator to the list
     config["validators"] = [{
-        "public_key": "0x000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
-        "keystore_file": "keystore-example.json",
-        "keystore_password": "replace_with_encrypted_password",
-        "enabled": False
+        "public_key": config["host_validator_public_key"],
+        "enabled": True
     }]
     
     return config
@@ -150,8 +157,9 @@ def main():
     print("===========================================")
     
     # Get server information
+    server_name = input("\nEnter a name for this server (e.g. validator1, eth-node2): ").strip()
     while True:
-        server_ip = input("\nEnter your server IP address: ")
+        server_ip = input("Enter the server's IP address: ")
         if validate_ip(server_ip):
             break
         print("Invalid IP address format. Please try again.")
@@ -168,6 +176,7 @@ def main():
         config = configure_charon_validator()
     
     # Common configuration
+    config["server_name"] = server_name
     config["IP"] = server_ip
     config["GRAFANA_ADMIN_PASSWORD"] = get_secure_password("\nEnter Grafana admin password")
     config["cadvisor_enabled"] = "true"
@@ -188,14 +197,18 @@ def main():
     # Ensure host_vars directory exists
     os.makedirs('host_vars', exist_ok=True)
     
-    # Save host-specific secrets file
+    # Save host-specific secrets file using IP for host_vars
     host_vars_file = f'host_vars/{server_ip}.yml'
+    
+    # Add server_name to config for templates
+    config["server_name"] = server_name
+    
     with open(host_vars_file, 'w') as f:
         yaml.dump(config, f, default_flow_style=False)
     
-    # Create inventory file
+    # Create inventory file using server name for readability
     inventory_content = f"""[ethereum_nodes]
-{server_ip} ansible_port={ssh_config['ansible_port']}
+{server_name} ansible_host={server_ip} ansible_port={ssh_config['ansible_port']}
 
 [all:vars]
 ansible_user={ssh_config['ansible_user']}
