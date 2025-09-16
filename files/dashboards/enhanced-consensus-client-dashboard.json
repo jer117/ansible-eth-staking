@@ -32,33 +32,13 @@
           "color": {
             "mode": "thresholds"
           },
-          "mappings": [
-            {
-              "options": {
-                "0": {
-                  "color": "red",
-                  "index": 0,
-                  "text": "Offline"
-                },
-                "1": {
-                  "color": "green",
-                  "index": 1,
-                  "text": "Online"
-                }
-              },
-              "type": "value"
-            }
-          ],
+          "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "red",
-                "value": null
-              },
-              {
                 "color": "green",
-                "value": 1
+                "value": null
               }
             ]
           }
@@ -67,14 +47,14 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 6,
+        "w": 8,
         "x": 0,
         "y": 0
       },
       "id": 1,
       "options": {
         "colorMode": "value",
-        "graphMode": "area",
+        "graphMode": "none",
         "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
@@ -93,95 +73,12 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "editorMode": "code",
-          "expr": "lighthouse_info",
-          "legendFormat": "Beacon Node",
-          "range": true,
+          "expr": "beacon_current_active_validators",
+          "legendFormat": "Active Validators",
           "refId": "A"
         }
       ],
-      "title": "Beacon Node Status",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [
-            {
-              "options": {
-                "0": {
-                  "color": "red",
-                  "index": 0,
-                  "text": "No Data"
-                },
-                "1": {
-                  "color": "green",
-                  "index": 1,
-                  "text": "Data Available"
-                }
-              },
-              "type": "value"
-            }
-          ],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "green",
-                "value": 1
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 6,
-        "x": 18,
-        "y": 0
-      },
-      "id": 12,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "pluginVersion": "9.5.1",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
-          },
-          "editorMode": "code",
-          "expr": "up{job=\"lighthouse-consensus\"}",
-          "legendFormat": "Scrape Status",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-            "title": "Metrics Scrape Status",
+      "title": "Current Active Validators",
       "type": "stat"
     },
     {
@@ -201,10 +98,6 @@
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
               }
             ]
           }
@@ -213,12 +106,15 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 6,
-        "x": 6,
+        "w": 8,
+        "x": 8,
         "y": 0
       },
       "id": 2,
       "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
           "calcs": [
@@ -227,8 +123,7 @@
           "fields": "",
           "values": false
         },
-        "showThresholdLabels": false,
-        "showThresholdMarkers": true
+        "textMode": "auto"
       },
       "pluginVersion": "9.5.1",
       "targets": [
@@ -237,15 +132,13 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "editorMode": "code",
-          "expr": "lighthouse_beacon_node_syncing",
-          "legendFormat": "Sync Status",
-          "range": true,
+          "expr": "nethermind_validators_count",
+          "legendFormat": "Nethermind Validators",
           "refId": "A"
         }
       ],
-      "title": "Sync Status",
-      "type": "gauge"
+      "title": "Nethermind Validators",
+      "type": "stat"
     },
     {
       "datasource": {
@@ -255,37 +148,7 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 20,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "smooth",
-            "lineWidth": 2,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
+            "mode": "thresholds"
           },
           "mappings": [],
           "thresholds": {
@@ -294,38 +157,32 @@
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
               }
             ]
-          },
-          "unit": "none"
+          }
         },
         "overrides": []
       },
       "gridPos": {
         "h": 8,
-        "w": 12,
-        "x": 12,
+        "w": 8,
+        "x": 16,
         "y": 0
       },
       "id": 3,
       "options": {
-        "legend": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
           "calcs": [
-            "sum",
-            "max"
+            "lastNotNull"
           ],
-          "displayMode": "table",
-          "placement": "right",
-          "showLegend": true
+          "fields": "",
+          "values": false
         },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
+        "textMode": "auto"
       },
       "pluginVersion": "9.5.1",
       "targets": [
@@ -334,15 +191,13 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "editorMode": "code",
-          "expr": "lighthouse_beacon_slot",
-          "legendFormat": "Current Slot",
-          "range": true,
+          "expr": "validator_monitor_validators_total",
+          "legendFormat": "Monitored Validators",
           "refId": "A"
         }
       ],
-      "title": "Current Slot",
-      "type": "timeseries"
+      "title": "Monitored Validators",
+      "type": "stat"
     },
     {
       "datasource": {
@@ -391,14 +246,9 @@
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
               }
             ]
-          },
-          "unit": "none"
+          }
         },
         "overrides": []
       },
@@ -411,10 +261,7 @@
       "id": 4,
       "options": {
         "legend": {
-          "calcs": [
-            "sum",
-            "max"
-          ],
+          "calcs": ["mean", "max"],
           "displayMode": "table",
           "placement": "right",
           "showLegend": true
@@ -424,22 +271,37 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "9.5.1",
+      "title": "Validator States",
+      "type": "timeseries",
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "editorMode": "code",
-          "expr": "lighthouse_beacon_head_state_root",
-          "legendFormat": "Head State Root",
-          "range": true,
+          "expr": "beacon_head_state_active_validators_total",
+          "legendFormat": "Active",
           "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "expr": "beacon_head_state_slashed_validators_total",
+          "legendFormat": "Slashed",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "expr": "beacon_head_state_withdrawn_validators_total",
+          "legendFormat": "Withdrawn",
+          "refId": "C"
         }
-      ],
-      "title": "Head State Root",
-      "type": "timeseries"
+      ]
     },
     {
       "datasource": {
@@ -488,14 +350,9 @@
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
               }
             ]
-          },
-          "unit": "none"
+          }
         },
         "overrides": []
       },
@@ -508,10 +365,7 @@
       "id": 5,
       "options": {
         "legend": {
-          "calcs": [
-            "sum",
-            "max"
-          ],
+          "calcs": ["mean", "max"],
           "displayMode": "table",
           "placement": "right",
           "showLegend": true
@@ -521,22 +375,28 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "9.5.1",
+      "title": "Validator Subscriptions",
+      "type": "timeseries",
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "editorMode": "code",
-          "expr": "rate(lighthouse_beacon_eth1_blocks_imported_total[5m])",
-          "legendFormat": "ETH1 Blocks Imported",
-          "range": true,
+          "expr": "validator_attestation_subnet_subscriptions_total",
+          "legendFormat": "Attestation Subscriptions",
           "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "expr": "validator_subnet_subscriptions_aggregator_total",
+          "legendFormat": "Aggregator Subscriptions",
+          "refId": "B"
         }
-      ],
-      "title": "ETH1 Blocks Imported",
-      "type": "timeseries"
+      ]
     },
     {
       "datasource": {
@@ -585,14 +445,9 @@
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
               }
             ]
-          },
-          "unit": "none"
+          }
         },
         "overrides": []
       },
@@ -605,10 +460,7 @@
       "id": 6,
       "options": {
         "legend": {
-          "calcs": [
-            "sum",
-            "max"
-          ],
+          "calcs": ["mean", "max"],
           "displayMode": "table",
           "placement": "right",
           "showLegend": true
@@ -618,22 +470,28 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "9.5.1",
+      "title": "Attestation Simulator - Head",
+      "type": "timeseries",
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "editorMode": "code",
-          "expr": "lighthouse_beacon_peers_connected",
-          "legendFormat": "Connected Peers",
-          "range": true,
+          "expr": "validator_monitor_attestation_simulator_head_attester_hit_total",
+          "legendFormat": "Hits",
           "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "expr": "validator_monitor_attestation_simulator_head_attester_miss_total",
+          "legendFormat": "Misses",
+          "refId": "B"
         }
-      ],
-      "title": "Connected Peers",
-      "type": "timeseries"
+      ]
     },
     {
       "datasource": {
@@ -682,14 +540,9 @@
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
               }
             ]
-          },
-          "unit": "s"
+          }
         },
         "overrides": []
       },
@@ -702,10 +555,7 @@
       "id": 7,
       "options": {
         "legend": {
-          "calcs": [
-            "sum",
-            "max"
-          ],
+          "calcs": ["mean", "max"],
           "displayMode": "table",
           "placement": "right",
           "showLegend": true
@@ -715,22 +565,28 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "9.5.1",
+      "title": "Attestation Simulator - Source",
+      "type": "timeseries",
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "editorMode": "code",
-          "expr": "rate(lighthouse_beacon_slot_processing_seconds_sum[5m]) / rate(lighthouse_beacon_slot_processing_seconds_count[5m])",
-          "legendFormat": "Slot Processing Time",
-          "range": true,
+          "expr": "validator_monitor_attestation_simulator_source_attester_hit_total",
+          "legendFormat": "Hits",
           "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "expr": "validator_monitor_attestation_simulator_source_attester_miss_total",
+          "legendFormat": "Misses",
+          "refId": "B"
         }
-      ],
-      "title": "Slot Processing Time",
-      "type": "timeseries"
+      ]
     },
     {
       "datasource": {
@@ -779,14 +635,9 @@
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
               }
             ]
-          },
-          "unit": "none"
+          }
         },
         "overrides": []
       },
@@ -799,10 +650,7 @@
       "id": 8,
       "options": {
         "legend": {
-          "calcs": [
-            "sum",
-            "max"
-          ],
+          "calcs": ["mean", "max"],
           "displayMode": "table",
           "placement": "right",
           "showLegend": true
@@ -812,17 +660,16 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "9.5.1",
+      "title": "Attestation Simulator - Target",
+      "type": "timeseries",
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "editorMode": "code",
-          "expr": "beacon_op_pool_attestations_total",
-          "legendFormat": "Attestations in Pool",
-          "range": true,
+          "expr": "validator_monitor_attestation_simulator_target_attester_hit_total",
+          "legendFormat": "Hits",
           "refId": "A"
         },
         {
@@ -830,26 +677,11 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "editorMode": "code",
-          "expr": "beacon_op_pool_attester_slashings_total",
-          "legendFormat": "Attester Slashings",
-          "range": true,
+          "expr": "validator_monitor_attestation_simulator_target_attester_miss_total",
+          "legendFormat": "Misses",
           "refId": "B"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
-          },
-          "editorMode": "code",
-          "expr": "beacon_op_pool_proposer_slashings_total",
-          "legendFormat": "Proposer Slashings",
-          "range": true,
-          "refId": "C"
         }
-      ],
-      "title": "Operation Pool",
-      "type": "timeseries"
+      ]
     },
     {
       "datasource": {
@@ -898,14 +730,9 @@
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
               }
             ]
-          },
-          "unit": "gwei"
+          }
         },
         "overrides": []
       },
@@ -918,10 +745,7 @@
       "id": 9,
       "options": {
         "legend": {
-          "calcs": [
-            "sum",
-            "max"
-          ],
+          "calcs": ["mean", "max"],
           "displayMode": "table",
           "placement": "right",
           "showLegend": true
@@ -931,17 +755,16 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "9.5.1",
+      "title": "Invalid Requests",
+      "type": "timeseries",
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "editorMode": "code",
-          "expr": "beacon_participation_curr_epoch_target_attesting_gwei_progressive_total",
-          "legendFormat": "Current Epoch Target Attesting",
-          "range": true,
+          "expr": "nethermind_json_rpc_invalid_requests",
+          "legendFormat": "Invalid JSON-RPC Requests",
           "refId": "A"
         },
         {
@@ -949,220 +772,11 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "editorMode": "code",
-          "expr": "beacon_participation_current_epoch_active_gwei_total",
-          "legendFormat": "Current Epoch Active",
-          "range": true,
+          "expr": "prometheus_api_remote_write_invalid_labels_samples_total",
+          "legendFormat": "Invalid Remote Write Samples",
           "refId": "B"
         }
-      ],
-      "title": "Participation Metrics",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 20,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "smooth",
-            "lineWidth": 2,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "none"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 32
-      },
-      "id": 10,
-      "options": {
-        "legend": {
-          "calcs": [
-            "sum",
-            "max"
-          ],
-          "displayMode": "table",
-          "placement": "right",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "9.5.1",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
-          },
-          "editorMode": "code",
-          "expr": "light_client_finality_update_verification_success_total",
-          "legendFormat": "Finality Update Verifications",
-          "range": true,
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
-          },
-          "editorMode": "code",
-          "expr": "light_client_optimistic_update_verification_success_total",
-          "legendFormat": "Optimistic Update Verifications",
-          "range": true,
-          "refId": "B"
-        }
-      ],
-      "title": "Light Client Verifications",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 20,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "smooth",
-            "lineWidth": 2,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "s"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 32
-      },
-      "id": 11,
-      "options": {
-        "legend": {
-          "calcs": [
-            "sum",
-            "max"
-          ],
-          "displayMode": "table",
-          "placement": "right",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "9.5.1",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
-          },
-          "editorMode": "code",
-          "expr": "rate(beacon_attestation_processing_apply_to_agg_pool_sum[5m]) / rate(beacon_attestation_processing_apply_to_agg_pool_count[5m])",
-          "legendFormat": "Attestation Processing Time",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "Attestation Processing Performance",
-      "type": "timeseries"
+      ]
     }
   ],
   "refresh": "5s",
@@ -1171,8 +785,7 @@
   "tags": [
     "ethereum",
     "consensus",
-    "lighthouse",
-    "beacon"
+    "validator"
   ],
   "templating": {
     "list": []
@@ -1183,7 +796,7 @@
   },
   "timepicker": {},
   "timezone": "",
-  "title": "Enhanced Lighthouse Consensus Client Dashboard",
-  "uid": "lighthouse-enhanced",
+  "title": "Consensus & Validator Metrics",
+  "uid": "consensus-validator-metrics",
   "version": 1
-} 
+}
