@@ -83,16 +83,6 @@ python3 setup.py
 
 # Run the playbook
 ansible-playbook -i inventory main.yml
-
-# Deploy Semaphore UI (Optional)
-- git
-- mysql-server
-- python3-pip
-
-ansible-playbook -i inventory playbooks/semaphore.yml -e "target_host=your_control_node"
-
-Once deployed, access the Semaphore UI at http://your_control_node:3000
-Default login: admin (customize in secrets.yml)
 ```
 
 # How to generate validator keys.
