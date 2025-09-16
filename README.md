@@ -130,6 +130,9 @@ docker run -u $(id -u):$(id -g) --rm -v "$(pwd)/:/opt/charon" obolnetwork/charon
 # Cluster Dashboard
 https://api.obol.tech/lock/0xC806E59C8D7CB721F4231582C57CC1EFDC7C43613B0F22A9BE1BFE50FD443EBD/launchpad
 
+# Make sure to load the keys generated above to your server.
+scp -r * root@{server_ip}:/root/.charon/
+
 ## Validator Client Options
 
 When using Obol Charon (distributed validator), you can choose between two validator clients:
