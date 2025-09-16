@@ -82,7 +82,7 @@ python3 setup.py
 # For validator setups, make sure to add your validator keys before running the playbook
 
 # Run the playbook
-ansible-playbook -i inventory ethereum-node.yml
+ansible-playbook -i inventory main.yml
 
 # Deploy Semaphore UI (Optional)
 - git
