@@ -39,10 +39,6 @@
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
               }
             ]
           }
@@ -51,93 +47,14 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 6,
+        "w": 8,
         "x": 0,
         "y": 0
       },
       "id": 1,
       "options": {
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showThresholdLabels": false,
-        "showThresholdMarkers": true
-      },
-      "pluginVersion": "9.5.1",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
-          },
-          "editorMode": "code",
-          "expr": "validator_total or up{job=\"validator-client\"}",
-          "legendFormat": "Active Validators",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "Active Validators",
-      "type": "gauge"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [
-            {
-              "options": {
-                "0": {
-                  "color": "red",
-                  "index": 0,
-                  "text": "No Data"
-                },
-                "1": {
-                  "color": "green",
-                  "index": 1,
-                  "text": "Data Available"
-                }
-              },
-              "type": "value"
-            }
-          ],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "green",
-                "value": 1
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 6,
-        "x": 18,
-        "y": 0
-      },
-      "id": 13,
-      "options": {
         "colorMode": "value",
-        "graphMode": "area",
+        "graphMode": "none",
         "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
@@ -156,14 +73,12 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "editorMode": "code",
-          "expr": "up{job=\"validator-client\"}",
-          "legendFormat": "Scrape Status",
-          "range": true,
+          "expr": "beacon_head_state_total_validators_total",
+          "legendFormat": "Total Validators",
           "refId": "A"
         }
       ],
-      "title": "Metrics Scrape Status",
+      "title": "Total Validators",
       "type": "stat"
     },
     {
@@ -183,29 +98,23 @@
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "orange",
-                "value": 10
-              },
-              {
-                "color": "red",
-                "value": 50
               }
             ]
-          },
-          "unit": "none"
+          }
         },
         "overrides": []
       },
       "gridPos": {
         "h": 8,
-        "w": 6,
-        "x": 6,
+        "w": 8,
+        "x": 8,
         "y": 0
       },
       "id": 2,
       "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
           "calcs": [
@@ -214,8 +123,7 @@
           "fields": "",
           "values": false
         },
-        "showThresholdLabels": false,
-        "showThresholdMarkers": true
+        "textMode": "auto"
       },
       "pluginVersion": "9.5.1",
       "targets": [
@@ -224,15 +132,13 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "editorMode": "code",
-          "expr": "missed_attestations",
-          "legendFormat": "Missed Attestations",
-          "range": true,
+          "expr": "validator_monitor_validators_total",
+          "legendFormat": "Monitored Validators",
           "refId": "A"
         }
       ],
-      "title": "Missed Attestations (24h)",
-      "type": "gauge"
+      "title": "Monitored Validators",
+      "type": "stat"
     },
     {
       "datasource": {
@@ -251,29 +157,24 @@
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "orange",
-                "value": 10
-              },
-              {
-                "color": "red",
-                "value": 50
               }
             ]
           },
-          "unit": "none"
+          "unit": "wei"
         },
         "overrides": []
       },
       "gridPos": {
         "h": 8,
-        "w": 6,
-        "x": 12,
+        "w": 8,
+        "x": 16,
         "y": 0
       },
       "id": 3,
       "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
           "calcs": [
@@ -282,8 +183,7 @@
           "fields": "",
           "values": false
         },
-        "showThresholdLabels": false,
-        "showThresholdMarkers": true
+        "textMode": "auto"
       },
       "pluginVersion": "9.5.1",
       "targets": [
@@ -292,15 +192,13 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "editorMode": "code",
-          "expr": "sum(increase(validator_attestation_errors_total[24h]))",
-          "legendFormat": "Attestation Errors",
-          "range": true,
+          "expr": "beacon_head_state_validator_balances_total",
+          "legendFormat": "Total Balance",
           "refId": "A"
         }
       ],
-      "title": "Attestation Errors (24h)",
-      "type": "gauge"
+      "title": "Total Validator Balance",
+      "type": "stat"
     },
     {
       "datasource": {
@@ -349,14 +247,9 @@
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
               }
             ]
-          },
-          "unit": "none"
+          }
         },
         "overrides": []
       },
@@ -369,10 +262,7 @@
       "id": 4,
       "options": {
         "legend": {
-          "calcs": [
-            "sum",
-            "max"
-          ],
+          "calcs": ["mean", "max"],
           "displayMode": "table",
           "placement": "right",
           "showLegend": true
@@ -382,17 +272,16 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "9.5.1",
+      "title": "Validator Subscriptions",
+      "type": "timeseries",
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "editorMode": "code",
-          "expr": "increase(validator_attestation_published_total[1h])",
-          "legendFormat": "Published",
-          "range": true,
+          "expr": "validator_attestation_subnet_subscriptions_total",
+          "legendFormat": "Attestation Subscriptions",
           "refId": "A"
         },
         {
@@ -400,15 +289,11 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "editorMode": "code",
-          "expr": "increase(validator_attestation_errors_total[1h])",
-          "legendFormat": "Errors",
-          "range": true,
+          "expr": "validator_subnet_subscriptions_aggregator_total",
+          "legendFormat": "Aggregator Subscriptions",
           "refId": "B"
         }
-      ],
-      "title": "Attestations (1h)",
-      "type": "timeseries"
+      ]
     },
     {
       "datasource": {
@@ -457,14 +342,9 @@
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
               }
             ]
-          },
-          "unit": "none"
+          }
         },
         "overrides": []
       },
@@ -477,10 +357,7 @@
       "id": 5,
       "options": {
         "legend": {
-          "calcs": [
-            "sum",
-            "max"
-          ],
+          "calcs": ["mean", "max"],
           "displayMode": "table",
           "placement": "right",
           "showLegend": true
@@ -490,17 +367,16 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "9.5.1",
+      "title": "Attestation Simulator - Head",
+      "type": "timeseries",
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "editorMode": "code",
-          "expr": "increase(validator_block_published_total[1h])",
-          "legendFormat": "Published",
-          "range": true,
+          "expr": "validator_monitor_attestation_simulator_head_attester_hit_total",
+          "legendFormat": "Hits",
           "refId": "A"
         },
         {
@@ -508,15 +384,11 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "editorMode": "code",
-          "expr": "increase(validator_block_errors_total[1h])",
-          "legendFormat": "Errors",
-          "range": true,
+          "expr": "validator_monitor_attestation_simulator_head_attester_miss_total",
+          "legendFormat": "Misses",
           "refId": "B"
         }
-      ],
-      "title": "Blocks (1h)",
-      "type": "timeseries"
+      ]
     },
     {
       "datasource": {
@@ -565,14 +437,9 @@
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
               }
             ]
-          },
-          "unit": "s"
+          }
         },
         "overrides": []
       },
@@ -585,10 +452,7 @@
       "id": 6,
       "options": {
         "legend": {
-          "calcs": [
-            "sum",
-            "max"
-          ],
+          "calcs": ["mean", "max"],
           "displayMode": "table",
           "placement": "right",
           "showLegend": true
@@ -598,22 +462,28 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "9.5.1",
+      "title": "Attestation Simulator - Source",
+      "type": "timeseries",
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "editorMode": "code",
-          "expr": "validator_attestation_duty_delay_seconds",
-          "legendFormat": "Attestation Duty Delay",
-          "range": true,
+          "expr": "validator_monitor_attestation_simulator_source_attester_hit_total",
+          "legendFormat": "Hits",
           "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "expr": "validator_monitor_attestation_simulator_source_attester_miss_total",
+          "legendFormat": "Misses",
+          "refId": "B"
         }
-      ],
-      "title": "Attestation Duty Delay",
-      "type": "timeseries"
+      ]
     },
     {
       "datasource": {
@@ -662,14 +532,9 @@
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
               }
             ]
-          },
-          "unit": "eth"
+          }
         },
         "overrides": []
       },
@@ -682,10 +547,7 @@
       "id": 7,
       "options": {
         "legend": {
-          "calcs": [
-            "sum",
-            "max"
-          ],
+          "calcs": ["mean", "max"],
           "displayMode": "table",
           "placement": "right",
           "showLegend": true
@@ -695,22 +557,28 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "9.5.1",
+      "title": "Attestation Simulator - Target",
+      "type": "timeseries",
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "editorMode": "code",
-          "expr": "validator_balance_total / 1e9",
-          "legendFormat": "Total Balance",
-          "range": true,
+          "expr": "validator_monitor_attestation_simulator_target_attester_hit_total",
+          "legendFormat": "Hits",
           "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "expr": "validator_monitor_attestation_simulator_target_attester_miss_total",
+          "legendFormat": "Misses",
+          "refId": "B"
         }
-      ],
-      "title": "Validator Balance",
-      "type": "timeseries"
+      ]
     },
     {
       "datasource": {
@@ -759,14 +627,9 @@
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
               }
             ]
-          },
-          "unit": "none"
+          }
         },
         "overrides": []
       },
@@ -779,10 +642,7 @@
       "id": 8,
       "options": {
         "legend": {
-          "calcs": [
-            "sum",
-            "max"
-          ],
+          "calcs": ["mean", "max"],
           "displayMode": "table",
           "placement": "right",
           "showLegend": true
@@ -792,17 +652,16 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "9.5.1",
+      "title": "Beacon Chain Misses",
+      "type": "timeseries",
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "editorMode": "code",
-          "expr": "validator_attestation_subnet_subscriptions_total",
-          "legendFormat": "Attestation Subnet Subscriptions",
-          "range": true,
+          "expr": "beacon_blobs_from_el_miss_total",
+          "legendFormat": "Blobs from EL Misses",
           "refId": "A"
         },
         {
@@ -810,15 +669,20 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "editorMode": "code",
-          "expr": "validator_subnet_subscriptions_aggregator_total",
-          "legendFormat": "Aggregator Subnet Subscriptions",
-          "range": true,
+          "expr": "beacon_processor_missing_components_total",
+          "legendFormat": "Missing Components",
           "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "expr": "execution_engine_getblobs_miss_total",
+          "legendFormat": "Get Blobs Misses",
+          "refId": "C"
         }
-      ],
-      "title": "Subnet Subscriptions",
-      "type": "timeseries"
+      ]
     },
     {
       "datasource": {
@@ -867,14 +731,9 @@
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
               }
             ]
-          },
-          "unit": "none"
+          }
         },
         "overrides": []
       },
@@ -887,10 +746,7 @@
       "id": 9,
       "options": {
         "legend": {
-          "calcs": [
-            "sum",
-            "max"
-          ],
+          "calcs": ["mean", "max"],
           "displayMode": "table",
           "placement": "right",
           "showLegend": true
@@ -900,17 +756,16 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "9.5.1",
+      "title": "Cache Misses",
+      "type": "timeseries",
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "editorMode": "code",
-          "expr": "validator_monitor_attestation_simulator_head_attester_hit_total",
-          "legendFormat": "Head Attester Hits",
-          "range": true,
+          "expr": "beacon_light_client_server_cache_prev_block_cache_miss",
+          "legendFormat": "Light Client Prev Block",
           "refId": "A"
         },
         {
@@ -918,339 +773,29 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "editorMode": "code",
-          "expr": "validator_monitor_attestation_simulator_head_attester_miss_total",
-          "legendFormat": "Head Attester Misses",
-          "range": true,
+          "expr": "beacon_shuffling_cache_misses_total",
+          "legendFormat": "Shuffling Cache",
           "refId": "B"
-        }
-      ],
-      "title": "Attestation Simulator - Head",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 20,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "smooth",
-            "lineWidth": 2,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "none"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 32
-      },
-      "id": 10,
-      "options": {
-        "legend": {
-          "calcs": [
-            "sum",
-            "max"
-          ],
-          "displayMode": "table",
-          "placement": "right",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "9.5.1",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
-          },
-          "editorMode": "code",
-          "expr": "validator_monitor_attestation_simulator_source_attester_hit_total",
-          "legendFormat": "Source Attester Hits",
-          "range": true,
-          "refId": "A"
         },
         {
           "datasource": {
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "editorMode": "code",
-          "expr": "validator_monitor_attestation_simulator_source_attester_miss_total",
-          "legendFormat": "Source Attester Misses",
-          "range": true,
-          "refId": "B"
-        }
-      ],
-      "title": "Attestation Simulator - Source",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 20,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "smooth",
-            "lineWidth": 2,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "none"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 32
-      },
-      "id": 11,
-      "options": {
-        "legend": {
-          "calcs": [
-            "sum",
-            "max"
-          ],
-          "displayMode": "table",
-          "placement": "right",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "9.5.1",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
-          },
-          "editorMode": "code",
-          "expr": "validator_monitor_attestation_simulator_target_attester_hit_total",
-          "legendFormat": "Target Attester Hits",
-          "range": true,
-          "refId": "A"
+          "expr": "gossipsub_memcache_misses_total",
+          "legendFormat": "Gossipsub Memcache",
+          "refId": "C"
         },
         {
           "datasource": {
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "editorMode": "code",
-          "expr": "validator_monitor_attestation_simulator_target_attester_miss_total",
-          "legendFormat": "Target Attester Misses",
-          "range": true,
-          "refId": "B"
+          "expr": "store_beacon_hdiff_buffer_cache_miss_total",
+          "legendFormat": "Beacon HDiff Buffer",
+          "refId": "D"
         }
-      ],
-      "title": "Attestation Simulator - Target",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 20,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "smooth",
-            "lineWidth": 2,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "none"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 40
-      },
-      "id": 12,
-      "options": {
-        "legend": {
-          "calcs": [
-            "sum",
-            "max"
-          ],
-          "displayMode": "table",
-          "placement": "right",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "9.5.1",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
-          },
-          "editorMode": "code",
-          "expr": "validator_monitor_validators_total",
-          "legendFormat": "Monitored Validators",
-          "range": true,
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
-          },
-          "editorMode": "code",
-          "expr": "warn_total",
-          "legendFormat": "Warnings",
-          "range": true,
-          "refId": "B"
-        }
-      ],
-      "title": "Validator Monitoring",
-      "type": "timeseries"
+      ]
     }
   ],
   "refresh": "5s",
@@ -1258,9 +803,7 @@
   "style": "dark",
   "tags": [
     "ethereum",
-    "validator",
-    "lighthouse",
-    "lodestar"
+    "validator"
   ],
   "templating": {
     "list": []
@@ -1271,7 +814,7 @@
   },
   "timepicker": {},
   "timezone": "",
-  "title": "Enhanced Validator Dashboard",
-  "uid": "validator-enhanced",
+  "title": "Validator Metrics",
+  "uid": "validator-metrics",
   "version": 1
-} 
+}
