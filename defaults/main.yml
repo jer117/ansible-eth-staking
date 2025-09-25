@@ -15,7 +15,7 @@ prysm_image: "gcr.io/prysmaticlabs/prysm/beacon-chain:v6.0.0"
 
 lodestar_image: "chainsafe/lodestar:v1.34.1"
 
-charon_docker_image: "obolnetwork/charon:v1.6.0" 
+charon_docker_image: "obolnetwork/charon:v1.6.1" 
 
 # Validator client selection (lighthouse or lodestar)
 validator_client: "lodestar"
