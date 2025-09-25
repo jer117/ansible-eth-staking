@@ -33,9 +33,9 @@ sudo ufw default allow outgoing
 sudo ufw allow 22/tcp
 
 # Ethereum execution client
-sudo ufw allow 8547/tcp  # JSON-RPC API
-sudo ufw allow 8552/tcp  # Engine API
-sudo ufw allow 30304/tcp # P2P communication
+sudo ufw allow 8545/tcp  # JSON-RPC API
+sudo ufw allow 8551/tcp  # Engine API
+sudo ufw allow 30303/tcp # P2P communication
 
 # Monitoring and Management
 sudo ufw allow 3000/tcp  # Grafana and Semaphore UI
@@ -54,7 +54,7 @@ sudo ufw status verbose
 
 ```bash
 # Clone repository
-git clone https://github.com/hydepwns/ansible-eth-staking.git && cd ansible-eth-staking
+git clone git@github.com:jer117/ansible-eth-staking.git && cd ansible-eth-staking
 
 # Install requirements
 pip install -r requirements.txt
