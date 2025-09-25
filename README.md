@@ -212,4 +212,18 @@ cd
 # Clean up db and tokens then re run the role.
 docker stop eth-ansible-consensus-1 eth-ansible-execution-1 && docker rm eth-ansible-execution-1 eth-ansible-consensus-1 && sudo rm -rf .lighthouse/ .nethermind/
 
+# Common Errors and Solutions
+
+### Charon Lock File Error
+```log
+08:10:07.227 ERRO cmd        Fatal error: existing private key lock file found, another charon instance may be running on your machine
+{"path": "/opt/charon/charon-enr-private-key.lock", "command": "charon run"}
+```
+
+**Solution:**
+```bash
+# Stop Charon, remove lock file, and restart
+cd ~/.charon && docker stop charon && sudo rm -rf charon-enr-private-key.lock && docker restart charon
+```
+
 ```
