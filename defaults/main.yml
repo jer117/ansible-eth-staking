@@ -6,7 +6,7 @@ consensus_docker_container_name: "eth-ansible-consensus-1"
 validator_docker_container_name: "eth-ansible-validator-1"
 
 # Execution Clients
-nethermind_image: "jer117/docker-eth-nethermind:1.33.1"
+nethermind_image: "jer117/docker-eth-nethermind:1.35.0"
 
 # Consensus Clients
 lighthouse_image: "sigp/lighthouse:v7.1.0"
@@ -15,7 +15,7 @@ prysm_image: "gcr.io/prysmaticlabs/prysm/beacon-chain:v6.0.0"
 
 lodestar_image: "chainsafe/lodestar:v1.34.1"
 
-charon_docker_image: "obolnetwork/charon:v1.6.1" 
+charon_docker_image: "obolnetwork/charon:v1.7.1" 
 
 # Validator client selection (lighthouse or lodestar)
 validator_client: "lodestar"

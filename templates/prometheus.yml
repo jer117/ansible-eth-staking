@@ -72,7 +72,7 @@ scrape_configs:
   {% endif %}
 
   # Charon metrics (if using distributed validator)
-  {% if charon_container_name is defined %}
+  {% if charon_enabled | string == "true" or charon_enabled == true %}
   - job_name: 'charon-local'
     static_configs:
       - targets: ['charon:{{ charon_monitoring_port }}']
