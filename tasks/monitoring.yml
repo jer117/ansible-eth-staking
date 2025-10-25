@@ -57,6 +57,7 @@
     - "files/dashboards/node-exporter-dashboard.json"
     - "files/dashboards/enhanced-consensus-client-dashboard.json"
     - "files/dashboards/enhanced-execution-client-dashboard.json"
+    - "files/dashboards/obol-dashboard.json"
   register: dashboard_files_cfg
 
 - name: Copy alert rules

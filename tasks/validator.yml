@@ -49,7 +49,10 @@
     owner: "root"
     group: "root"
     mode: "0755"
-  when: charon_enabled == 'true' and validator_client == 'lodestar'
+  when:
+    - charon_enabled | string == 'true'
+    - mev_boost_enabled | string == 'true'
+    - validator_client | string == 'lodestar'
 
 - name: Start/Restart the validator client docker container
   become: true
@@ -114,4 +117,7 @@
       WITHDRAWAL_ACCOUNT_ADDRESS: "{{ withdrawal_account_address }}"
       NODE_OPTIONS: "--max-old-space-size=4096"
     entrypoint: /opt/data/run.sh
-  when: charon_enabled == 'true' and mev_boost_enabled == 'true' and validator_client == 'lodestar'
+  when:
+    - charon_enabled | string == 'true'
+    - mev_boost_enabled | string == 'true'
+    - validator_client | string == 'lodestar'

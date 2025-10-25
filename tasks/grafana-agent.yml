@@ -20,9 +20,17 @@ metrics:
         - job_name: 'validator-client'
           static_configs:
             - targets: ["{{ validator_docker_container_name }}:{{ validator_monitoring_port }}"]
-        - job_name: 'charon'
+        - job_name: 'charon-local'
           static_configs:
             - targets: ["{{ charon_container_name }}:{{ charon_monitoring_port }}"]
+          metrics_path: '/metrics'
+          scrape_interval: 10s
+          scrape_timeout: 8s
+          honor_labels: true
+          relabel_configs:
+            - source_labels: [__address__]
+              target_label: instance
+              replacement: "{{ IP }}"
         - job_name: 'mev-boost'
           static_configs:
             - targets: ["{{ mev_boost_container_name }}:{{ mev_boost_api_port }}"]
