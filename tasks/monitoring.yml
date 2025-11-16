@@ -1,18 +1,18 @@
 ---
-- name: Ensure home directory for root exists with correct permissions
+- name: Ensure home directory for slcl_admin exists with correct permissions
   file:
-    path: /root
+    path: /slcl_admin
     state: directory
-    owner: root
-    group: root
+    owner: slcl_admin
+    group: slcl_admin
     mode: '0755'
 
 - name: Create directory structure for monitoring
   file:
     path: "{{ item }}"
     state: directory
-    owner: root
-    group: root
+    owner: slcl_admin
+    group: slcl_admin
     mode: "0755"
   with_items:
     - "{{ host_config_mount }}/prometheus"
@@ -24,14 +24,14 @@
     - "{{ host_config_mount }}/alertmanager"
 
 - name: Task Copy datasource config
-  become_user: root
+  become_user: slcl_admin
   become: true
   template:
     src: datasource.yml
     dest: "{{ host_config_mount }}/grafana/provisioning/datasources/datasource.yml"
     force: true
-    owner: "root"
-    group: "root"
+    owner: "slcl_admin"
+    group: "slcl_admin"
     mode: "0755"
   register: datasource_cfg
 
@@ -39,8 +39,8 @@
   template:
     src: dashboard.yml
     dest: "{{ host_config_mount }}/grafana/provisioning/dashboards/dashboard.yml"
-    owner: root
-    group: root
+    owner: slcl_admin
+    group: slcl_admin
     mode: "0644"
   register: dashboard_cfg
 
@@ -48,8 +48,8 @@
   copy:
     src: "{{ item }}"
     dest: "{{ host_config_mount }}/grafana/provisioning/dashboards/{{ item | basename }}"
-    owner: root
-    group: root
+    owner: slcl_admin
+    group: slcl_admin
     mode: "0644"
   with_items:
     - "files/dashboards/system-monitoring-dashboard.json"
@@ -64,8 +64,8 @@
   template:
     src: alert_rules.yml
     dest: "{{ host_config_mount }}/prometheus/rules/alert_rules.yml"
-    owner: root
-    group: root
+    owner: slcl_admin
+    group: slcl_admin
     mode: "0644"
   register: alertrules_cfg
 
@@ -73,32 +73,32 @@
   template:
     src: alertmanager.yml
     dest: "{{ host_config_mount }}/alertmanager/alertmanager.yml"
-    owner: root
-    group: root
+    owner: slcl_admin
+    group: slcl_admin
     mode: "0644"
   register: alertmanager_cfg
 
 - name: Task copy grafana-agent.yml
-  become_user: root
+  become_user: slcl_admin
   become: true
   template:
     src: grafana-agent.yml
     dest: "{{ host_config_mount }}/grafana/grafana-agent.yml"
     force: true
-    owner: "root"
-    group: "root"
+    owner: "slcl_admin"
+    group: "slcl_admin"
     mode: "0755"
   register: graf_cfg
 
 - name: Task copy prometheus.yml
-  become_user: root
+  become_user: slcl_admin
   become: true
   template:
     src: prometheus.yml
     dest: "{{ host_config_mount }}/prometheus/prometheus.yml"
     force: true
-    owner: "root"
-    group: "root"
+    owner: "slcl_admin"
+    group: "slcl_admin"
     mode: "0755"
   register: prom_cfg
 
@@ -107,7 +107,7 @@
     cfg_changed: "{{ prom_cfg.changed | bool or graf_cfg.changed | bool or datasource_cfg.changed | bool or dashboard_cfg.changed | bool or dashboard_files_cfg.changed | bool or alertrules_cfg.changed | bool or alertmanager_cfg.changed | bool }}"
 
 - name: Start node exporter
-  become_user: root
+  become_user: slcl_admin
   become: true
   community.docker.docker_container:
     name: "{{ node_exporter_name }}"
@@ -124,7 +124,7 @@
       - "127.0.0.1:9100:9100"
 
 - name: Start alertmanager
-  become_user: root
+  become_user: slcl_admin
   become: true
   community.docker.docker_container:
     name: alertmanager
@@ -146,7 +146,7 @@
       - "--storage.path=/alertmanager"
 
 - name: Start prometheus container
-  become_user: root
+  become_user: slcl_admin
   become: true
   community.docker.docker_container:
     name: "{{prometheus_name}}"
@@ -171,7 +171,7 @@
       - --web.enable-lifecycle
 
 - name: Start grafana agent
-  become_user: root
+  become_user: slcl_admin
   become: true
   community.docker.docker_container:
     name: grafana_agent
@@ -193,7 +193,7 @@
       - --server.http.address=0.0.0.0:12345
 
 - name: Start grafana dashboard container
-  become_user: root
+  become_user: slcl_admin
   become: true
   community.docker.docker_container:
     name: grafana

@@ -1,19 +1,19 @@
 ---
 - name: Create directory structure for eth home staker
-  become_user: root
+  become_user: slcl_admin
   become: true
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
-    owner: "root"
-    group: "root"
+    owner: "slcl_admin"
+    group: "slcl_admin"
     mode: "0755"
   with_items:
     - "{{ execution_config_mount }}"
     - "{{ execution_data_mount }}"
 
 - name: Copy JWT token to execution client
-  become_user: root
+  become_user: slcl_admin
   become: true
   ansible.builtin.copy:
     src: "{{ consensus_config_mount }}/exec_token/token"
@@ -27,7 +27,7 @@
     eth_ansible_execution_1_docker_ports: "{{ eth_ansible_execution_1_docker_ports }}"
 
 - name: Start eth-ansible-execution-1 container
-  become_user: root
+  become_user: slcl_admin
   become: true
   community.docker.docker_container:
     name: "{{ execution_docker_container_name }}"
@@ -41,8 +41,8 @@
     networks_cli_compatible: true
     ports: "{{ eth_ansible_execution_1_docker_ports }}"
     volumes:
-      - "{{ execution_config_mount }}:/root/.nethermind"
-      - "{{ execution_data_mount }}:/root/data"
+      - "{{ execution_config_mount }}:/slcl_admin/.nethermind"
+      - "{{ execution_data_mount }}:/slcl_admin/data"
       - "{{ consensus_config_mount }}/exec_token:/exec_token:ro"
     command: >
       --datadir "/data"

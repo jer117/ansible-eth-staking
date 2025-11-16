@@ -7,8 +7,8 @@ eth_ansible_execution_1_docker_memory: "{{ (ansible_memory_mb.real.total * 0.45)
 
 # Validator Client Configuration
 validator_container_name: "{{ validator_docker_container_name }}"
-validator_keys_mount: "/root/.lighthouse/validators"
-validator_data_mount: "/root/.lighthouse/validator-data"
+validator_keys_mount: "/home/slcl_admin/.lighthouse/validators"
+validator_data_mount: "/home/slcl_admin/.lighthouse/validator-data"
 validator_graffiti: "JerCoffeegang Staking"
 validator_client_http_api_port: 5064
 validator_monitoring_port: 8009
@@ -20,15 +20,15 @@ eth_ansible_execution_1_rpc_port: 8544
 eth_ansible_execution_1_websocket_port: 8548
 
 # Execution / docker mounts (override if neccessary)
-execution_config_mount: /root/.nethermind/exec_token
-execution_data_mount: /root/.nethermind/data/
+execution_config_mount: /home/slcl_admin/.nethermind/exec_token
+execution_data_mount: /home/slcl_admin/.nethermind/data/
 
 # Consensus / docker mounts (override if neccessary)
-consensus_config_mount: /root/.lighthouse/config
-consensus_data_mount: /root/.lighthouse/data/
-consensus_jwt_secret_mount: /root/.lighthouse/config/exec_token
+consensus_config_mount: /home/slcl_admin/.lighthouse/config
+consensus_data_mount: /home/slcl_admin/.lighthouse/data/
+consensus_jwt_secret_mount: /home/slcl_admin/.lighthouse/config/exec_token
 
-docker_config_mount: /root/.nethermind
+docker_config_mount: /home/slcl_admin/.nethermind
 docker_data_mount: /data
 
 # Geth Execution Layer Client

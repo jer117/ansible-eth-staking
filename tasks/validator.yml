@@ -1,12 +1,12 @@
 ---
 - name: Create directory structure for validator client
-  become_user: "root"
+  become_user: "slcl_admin"
   become: true
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
-    owner: "root"
-    group: "root"
+    owner: "slcl_admin"
+    group: "slcl_admin"
     mode: "0755"
   with_items:
     - "{{ validator_keys_mount }}/keys"
@@ -20,8 +20,8 @@
 #     content: "{{ item.keystore_content | default(omit) }}"
 #     src: "{{ item.keystore_file | default(omit) }}"
 #     dest: "{{ validator_keys_mount }}/keystores/{{ item.keystore_file | basename }}"
-#     owner: "root"
-#     group: "root"
+#     owner: "slcl_admin"
+#     group: "slcl_admin"
 #     mode: "0600"
 #   with_items: "{{ validators }}"
 #   when: validators is defined
@@ -31,8 +31,8 @@
   ansible.builtin.template:
     src: templates/validator_definitions.yml.j2
     dest: "{{ validator_keys_mount }}/keys/validator_definitions.yml"
-    owner: "root"
-    group: "root"
+    owner: "slcl_admin"
+    group: "slcl_admin"
     mode: "0600"
   when: charon_enabled == 'false' and mev_boost_enabled == 'false'
 
@@ -46,8 +46,8 @@
   ansible.builtin.template:
     src: templates/run.sh.j2
     dest: "{{ validator_data_mount }}/run.sh"
-    owner: "root"
-    group: "root"
+    owner: "slcl_admin"
+    group: "slcl_admin"
     mode: "0755"
   when:
     - charon_enabled | string == 'true'
@@ -57,7 +57,6 @@
 - name: Start/Restart the validator client docker container
   become: true
   community.docker.docker_container:
-    user: "root"
     image: "{{ lighthouse_image }}"
     keep_volumes: true
     name: "{{ validator_container_name }}"
@@ -93,7 +92,6 @@
   when: charon_enabled == 'false' and mev_boost_enabled == 'false' and validator_client == 'lighthouse'
 
 - name: Start/Restart the Lodestar validator client docker container (with MEV boost)
-  become_user: root
   become: true
   community.docker.docker_container:
     image: "{{ lodestar_image }}"
@@ -107,7 +105,7 @@
     restart_policy: unless-stopped
     state: started
     volumes: 
-      - "/root/.charon/validator_keys:/home/charon/validator_keys"
+      - "/slcl_admin/.charon/validator_keys:/home/charon/validator_keys"
       - "{{ validator_data_mount }}:/opt/data"
     env:
       BEACON_NODE_ADDRESS: "http://{{ charon_container_name }}:{{ charon_validator_api_port }}"

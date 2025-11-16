@@ -1,12 +1,12 @@
 ---
 - name: Create directory structure for eth beacon node
-  become_user: "root"
+  become_user: "slcl_admin"
   become: true
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
-    owner: "root"
-    group: "root"
+    owner: slcl_admin
+    group: slcl_admin
     mode: "0755"
   with_items:
     - "{{ consensus_config_mount }}"
@@ -14,7 +14,7 @@
     - "{{ consensus_config_mount }}/exec_token"
 
 - name: Generate JWT secret token
-  become_user: root
+  become_user: slcl_admin
   become: true
   ansible.builtin.shell: |
     if [ ! -f "{{ consensus_config_mount }}/exec_token/token" ]; then
@@ -27,7 +27,7 @@
 # Load and verify required variables
 - name: Load host vars again if needed
   ansible.builtin.include_vars:
-    file: "host_vars/{{ ansible_host }}.yml"
+    file: "host_vars/{{ inventory_hostname }}.yml"
   tags: [always]
 
 - name: Set required variables
@@ -43,10 +43,9 @@
       - "Withdrawal Address: {{ withdrawal_account_address }}"
 
 - name: Start/Restart the beacon client docker container
-  become_user: root
+  become_user: slcl_admin
   become: true
   community.docker.docker_container:
-    user: "root"
     image: "{{ lighthouse_image }}"
     keep_volumes: true
     name: "{{ consensus_docker_container_name }}"
@@ -85,4 +84,6 @@
       --checkpoint-sync-url https://hoodi-checkpoint-sync.stakely.io
       {% elif network == "sepolia" %}
       --checkpoint-sync-url https://sepolia.checkpoint.sigp.io
+      {% elif network == "gnosis" %}
+      --checkpoint-sync-url https://checkpoint.gnosischain.com
       {% endif %}

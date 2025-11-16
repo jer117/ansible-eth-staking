@@ -34,7 +34,7 @@
     # Create DKG (only done by the leader)
     - name: Create dkg
       become: true
-      become_user: root
+      become_user: slcl_admin
       ansible.builtin.command:
         cmd: >-
           docker run --rm --user 7008:7008

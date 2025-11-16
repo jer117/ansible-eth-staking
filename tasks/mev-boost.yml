@@ -1,7 +1,7 @@
 ---
 - name: Start mev boost
   become: true
-  become_user: "root"
+  become_user: "slcl_admin"
   community.general.docker_container:
     name: "{{ mev_boost_container_name }}"
     image: "{{ mev_boost_docker_image }}"

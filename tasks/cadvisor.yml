@@ -10,7 +10,7 @@
     - "{{ host_config_mount }}/cadvisor"
 
 - name: Install cadvisor
-  become_user: root
+  become_user: slcl_admin
   become: true
   community.docker.docker_container:
     name: cadvisor
