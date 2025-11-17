@@ -25,6 +25,20 @@
       ansible.builtin.include_vars: defaults/main.yml
       tags: [always]
 
+    - name: Detect system architecture and set appropriate Docker images
+      ansible.builtin.set_fact:
+        nethermind_image: "{{ nethermind_image_arm64 if ansible_architecture == 'aarch64' else nethermind_image_amd64 }}"
+        lighthouse_image: "{{ lighthouse_image_arm64 if ansible_architecture == 'aarch64' else lighthouse_image_amd64 }}"
+      tags: [always]
+
+    - name: Display detected architecture and selected images
+      ansible.builtin.debug:
+        msg:
+          - "Detected architecture: {{ ansible_architecture }}"
+          - "Selected Nethermind image: {{ nethermind_image }}"
+          - "Selected Lighthouse image: {{ lighthouse_image }}"
+      tags: [always]
+
     - name: Create directory structure for home staking role
       become_user: root
       become: true
@@ -36,6 +50,24 @@
         mode: "0755"
       with_items:
         - "{{ host_config_mount }}"
+
+    - name: Ensure pip is installed
+      become: true
+      ansible.builtin.package:
+        name:
+          - python3-pip
+        state: present
+      tags: [always]
+      ignore_errors: true
+
+    - name: Install Python dependencies for Docker modules
+      become: true
+      ansible.builtin.pip:
+        name:
+          - requests
+          - docker
+        state: present
+      tags: [always]
 
     - name: Create Docker network
       docker_network:

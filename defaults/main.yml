@@ -6,10 +6,18 @@ consensus_docker_container_name: "eth-ansible-consensus-1"
 validator_docker_container_name: "eth-ansible-validator-1"
 
 # Execution Clients
-nethermind_image: "jer117/docker-eth-nethermind:1.35.2"
+# Note: nethermind_image is automatically set based on system architecture detection
+# Override nethermind_image in host_vars if you need a specific image
+nethermind_image: "nethermind/nethermind:1.35.2"  # Fallback/default (will be overridden by architecture detection)
+nethermind_image_amd64: "nethermind/nethermind:1.35.2"
+nethermind_image_arm64: "jer117/docker-eth-nethermind:1.35.2"
 
 # Consensus Clients
-lighthouse_image: "sigp/lighthouse:v8.0.0"
+# Note: lighthouse_image is automatically set based on system architecture detection
+# Override lighthouse_image in host_vars if you need a specific image
+lighthouse_image: "sigp/lighthouse:v8.0.0"  # Fallback/default (will be overridden by architecture detection)
+lighthouse_image_amd64: "sigp/lighthouse:v8.0.0"
+lighthouse_image_arm64: "sigp/lighthouse:v8.0.0-arm64"
 
 prysm_image: "gcr.io/prysmaticlabs/prysm/beacon-chain:v6.0.0"
 

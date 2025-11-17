@@ -42,6 +42,14 @@
       - "Network: {{ network }}"
       - "Withdrawal Address: {{ withdrawal_account_address }}"
 
+- name: Pull Lighthouse Docker image
+  become_user: root
+  become: true
+  community.docker.docker_image:
+    name: "{{ lighthouse_image }}"
+    source: pull
+  tags: [consensus]
+
 - name: Start/Restart the beacon client docker container
   become_user: root
   become: true
@@ -56,6 +64,7 @@
     published_ports: "{{ beacon_published_ports }}"
     restart_policy: unless-stopped
     state: started
+    timeout: 300
     volumes:
       - "{{ consensus_config_mount }}:/config/:rw"
       - "{{ consensus_data_mount }}:/data"
@@ -79,10 +88,15 @@
       --metrics-port {{ consensus_monitoring_port }}
       --suggested-fee-recipient {{ withdrawal_account_address }}
       --network {{ network }}
+      --disable-backfill-rate-limiting
+      --reconstruct-historic-states
+      --historic-state-cache-size=16
       {% if network == "mainnet" %}
       --checkpoint-sync-url https://mainnet.checkpoint.sigp.io
       {% elif network == "hoodi" %}
       --checkpoint-sync-url https://hoodi-checkpoint-sync.stakely.io
       {% elif network == "sepolia" %}
       --checkpoint-sync-url https://sepolia.checkpoint.sigp.io
+      {% elif network == "gnosis" %}
+      --checkpoint-sync-url https://checkpoint.gnosischain.com
       {% endif %}
