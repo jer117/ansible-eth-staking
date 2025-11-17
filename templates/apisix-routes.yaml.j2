@@ -1,0 +1,151 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# APISIX Standalone mode configuration for Ethereum clients
+
+routes:
+  # Execution client (Nethermind) JSON-RPC endpoint with forward-auth
+  - id: execution-rpc
+    name: "Execution RPC Endpoint"
+    uri: /execution/*
+    upstream:
+      type: roundrobin
+      nodes:
+        "{{ execution_docker_container_name }}:{{ eth_ansible_execution_1_rpc_port }}": 1
+      timeout:
+        connect: 30
+        send: 30
+        read: 30
+    plugins:
+      forward-auth:
+        uri: "http://{{ apisix_auth_service_host }}:{{ apisix_auth_service_port }}/auth/validate"
+        request_method: "GET"
+        request_headers:
+          - "Authorization"
+          - "X-API-Key"
+        upstream_headers:
+          - "X-User-ID"
+          - "X-Auth-User"
+        client_headers:
+          - "WWW-Authenticate"
+        timeout: 5000
+        keepalive: true
+        ssl_verify: false
+        allow_degradation: {{ apisix_allow_degradation | default('false') }}
+      proxy-rewrite:
+        regex_uri:
+          - "^/execution/(.*)"
+          - "/$1"
+      prometheus: {}
+
+  # Consensus client (Lighthouse) HTTP API endpoint with forward-auth
+  - id: consensus-api
+    name: "Consensus API Endpoint"
+    uri: /consensus/*
+    upstream:
+      type: roundrobin
+      nodes:
+        "{{ consensus_docker_container_name }}:{{ consensus_client_http_api_port }}": 1
+      timeout:
+        connect: 30
+        send: 30
+        read: 30
+    plugins:
+      forward-auth:
+        uri: "http://{{ apisix_auth_service_host }}:{{ apisix_auth_service_port }}/auth/validate"
+        request_method: "GET"
+        request_headers:
+          - "Authorization"
+          - "X-API-Key"
+        upstream_headers:
+          - "X-User-ID"
+          - "X-Auth-User"
+        client_headers:
+          - "WWW-Authenticate"
+        timeout: 5000
+        keepalive: true
+        ssl_verify: false
+        allow_degradation: {{ apisix_allow_degradation | default('false') }}
+      proxy-rewrite:
+        regex_uri:
+          - "^/consensus/(.*)"
+          - "/$1"
+      prometheus: {}
+
+  # Health check endpoint (no auth required)
+  - id: health
+    name: "Health Check"
+    uri: /health
+    upstream:
+      type: roundrobin
+      nodes:
+        "{{ consensus_docker_container_name }}:{{ consensus_client_http_api_port }}": 1
+    plugins:
+      proxy-rewrite:
+        uri: /eth/v1/node/health
+      prometheus: {}
+
+  # Execution health check (no auth required)
+  - id: execution-health
+    name: "Execution Health Check"
+    uri: /execution-health
+    upstream:
+      type: roundrobin
+      nodes:
+        "{{ execution_docker_container_name }}:{{ eth_ansible_execution_1_rpc_port }}": 1
+    plugins:
+      serverless-pre-function:
+        phase: rewrite
+        functions:
+          - "return function(conf, ctx)
+              local core = require('apisix.core')
+              core.request.set_header(ctx, 'Content-Type', 'application/json')
+            end"
+      prometheus: {}
+
+{% if apisix_enable_auth_service | default(true) %}
+  # Simple auth service endpoint (validates API keys)
+  - id: auth-service
+    name: "Auth Service"
+    uri: /auth/validate
+    plugins:
+      serverless-pre-function:
+        phase: rewrite
+        functions:
+          - "return function(conf, ctx)
+              local core = require('apisix.core')
+              local authorization = core.request.header(ctx, 'Authorization')
+              local api_key = core.request.header(ctx, 'X-API-Key')
+              
+              -- Check for valid API key or Bearer token
+              if api_key == '{{ apisix_api_key }}' then
+                core.response.set_header('X-User-ID', 'api-user')
+                core.response.set_header('X-Auth-User', 'authenticated')
+                core.response.exit(200)
+              elseif authorization and authorization:match('^Bearer {{ apisix_bearer_token }}$') then
+                core.response.set_header('X-User-ID', 'bearer-user')
+                core.response.set_header('X-Auth-User', 'authenticated')
+                core.response.exit(200)
+              else
+                core.response.set_header('WWW-Authenticate', 'Bearer realm=\"APISIX\"')
+                core.response.exit(401, 'Unauthorized: Invalid or missing credentials')
+              end
+            end"
+      prometheus: {}
+{% endif %}
+
+#END
+

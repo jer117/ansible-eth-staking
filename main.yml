@@ -1,28 +1,38 @@
 ---
 - hosts: all
   tasks:
-    - name: Check if host vars file exists
-      ansible.builtin.stat:
-        path: "host_vars/{{ ansible_host }}.yml"
-      register: host_vars_file
+    # Note: Ansible automatically loads host_vars/<inventory_hostname>.yml
+    # We load defaults and common vars explicitly for proper precedence
+    - name: Include default vars
+      ansible.builtin.include_vars: defaults/main.yml
       tags: [always]
-
-    - name: Load host-specific variables
-      ansible.builtin.include_vars:
-        file: "host_vars/{{ ansible_host }}.yml"
-      tags: [always]
-      when: host_vars_file.stat.exists
 
     - name: Include main vars
-      ansible.builtin.include_vars: main.yml
+      ansible.builtin.include_vars: vars/main.yml
       tags: [always]
 
     - name: Include monitoring vars
-      ansible.builtin.include_vars: monitoring.yml
+      ansible.builtin.include_vars: vars/monitoring.yml
       tags: [always]
 
-    - name: Include default vars
-      ansible.builtin.include_vars: defaults/main.yml
+    - name: Detect system architecture and set appropriate Docker images
+      ansible.builtin.set_fact:
+        nethermind_image: "{{ nethermind_image_arm64 if ansible_architecture == 'aarch64' else nethermind_image_amd64 }}"
+        lighthouse_image: "{{ lighthouse_image_arm64 if ansible_architecture == 'aarch64' else lighthouse_image_amd64 }}"
+        teku_image: "{{ teku_image_arm64 if ansible_architecture == 'aarch64' else teku_image_amd64 }}"
+        apisix_etcd_image: "{{ apisix_etcd_image_arm64 if ansible_architecture == 'aarch64' else apisix_etcd_image_amd64 }}"
+      tags: [always]
+
+    - name: Display detected architecture and selected images
+      ansible.builtin.debug:
+        msg:
+          - "Detected architecture: {{ ansible_architecture }}"
+          - "Selected Nethermind image: {{ nethermind_image }}"
+          - "Selected Lighthouse image: {{ lighthouse_image }}"
+          - "Selected Teku image: {{ teku_image }}"
+          - "Selected APISIX etcd image: {{ apisix_etcd_image }}"
+          - "Consensus client: {{ consensus_client }}"
+          - "APISIX enabled: {{ apisix_enabled | default(false) }}"
       tags: [always]
 
     - name: Create directory structure for home staking role
@@ -37,13 +47,37 @@
       with_items:
         - "{{ host_config_mount }}"
 
+    - name: Ensure pip is installed
+      become: true
+      ansible.builtin.package:
+        name:
+          - python3-pip
+        state: present
+      tags: [always]
+      ignore_errors: true
+
+    - name: Install Python dependencies for Docker modules
+      become: true
+      ansible.builtin.pip:
+        name:
+          - requests
+          - docker
+        state: present
+      tags: [always]
+
     - name: Create Docker network
       docker_network:
         name: eth-staking-network-net
         state: present
 
-    - name: Import Consensus
+    - name: Import Lighthouse Consensus Client
       ansible.builtin.import_tasks: tasks/lighthouse.yml
+      when: consensus_client | default('lighthouse') == 'lighthouse'
+      tags: [consensus]
+
+    - name: Import Teku Consensus Client
+      ansible.builtin.import_tasks: tasks/teku.yml
+      when: consensus_client | default('lighthouse') == 'teku'
       tags: [consensus]
 
     - name: Include task execution
@@ -78,8 +112,20 @@
       when: mev_boost_enabled == 'true'
       tags: [mev]
 
+    - name: Import APISIX API Gateway
+      ansible.builtin.import_tasks: tasks/apisix.yml
+      when: apisix_enabled | default(false)
+      tags: [apisix]
+
   handlers:
     - name: reload cadvisor
       systemd:
         name: cadvisor.service
-        state: restarted  
+        state: restarted
+    
+    - name: Restart APISIX
+      become: true
+      community.docker.docker_container:
+        name: "{{ apisix_container_name }}"
+        state: started
+        restart: true  

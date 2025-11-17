@@ -26,6 +26,14 @@
   ansible.builtin.set_fact:
     eth_ansible_execution_1_docker_ports: "{{ eth_ansible_execution_1_docker_ports }}"
 
+- name: Pull Nethermind Docker image
+  become_user: root
+  become: true
+  community.docker.docker_image:
+    name: "{{ nethermind_image }}"
+    source: pull
+  tags: [execution]
+
 - name: Start eth-ansible-execution-1 container
   become_user: root
   become: true
@@ -36,6 +44,7 @@
     memory: "{{ eth_ansible_execution_1_docker_memory }}"
     memory_swap: "{{ eth_ansible_execution_1_docker_memory }}"
     restart_policy: unless-stopped
+    timeout: 300
     networks:
       - name: "eth-staking-network-net"
     networks_cli_compatible: true

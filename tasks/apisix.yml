@@ -1,0 +1,106 @@
+---
+- name: Create directory structure for APISIX
+  become_user: root
+  become: true
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "root"
+    group: "root"
+    mode: "0755"
+  with_items:
+    - "{{ apisix_config_dir }}"
+    - "{{ apisix_config_dir }}/apisix"
+    - "{{ apisix_data_dir }}"
+
+- name: Copy APISIX config.yaml
+  become_user: root
+  become: true
+  ansible.builtin.template:
+    src: apisix-config.yaml.j2
+    dest: "{{ apisix_config_dir }}/apisix/config.yaml"
+    mode: "0644"
+  notify: Restart APISIX
+
+- name: Copy APISIX routes configuration
+  become_user: root
+  become: true
+  ansible.builtin.template:
+    src: apisix-routes.yaml.j2
+    dest: "{{ apisix_config_dir }}/apisix/apisix.yaml"
+    mode: "0644"
+  notify: Restart APISIX
+
+- name: Pull etcd Docker image
+  become_user: root
+  become: true
+  community.docker.docker_image:
+    name: "{{ apisix_etcd_image }}"
+    source: pull
+  tags: [apisix]
+
+- name: Pull APISIX Docker image
+  become_user: root
+  become: true
+  community.docker.docker_image:
+    name: "{{ apisix_image }}"
+    source: pull
+  tags: [apisix]
+
+- name: Start etcd container for APISIX
+  become_user: root
+  become: true
+  community.docker.docker_container:
+    name: "{{ apisix_etcd_container_name }}"
+    image: "{{ apisix_etcd_image }}"
+    state: started
+    restart_policy: unless-stopped
+    timeout: 300
+    networks:
+      - name: "eth-staking-network-net"
+    networks_cli_compatible: true
+    volumes:
+      - "{{ apisix_data_dir }}/etcd:/bitnami/etcd"
+    env:
+      ETCD_ENABLE_V2: "true"
+      ALLOW_NONE_AUTHENTICATION: "yes"
+      ETCD_ADVERTISE_CLIENT_URLS: "http://{{ apisix_etcd_container_name }}:2379"
+      ETCD_LISTEN_CLIENT_URLS: "http://0.0.0.0:2379"
+    ports:
+      - "127.0.0.1:2379:2379"
+
+- name: Wait for etcd to be ready
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: 2379
+    delay: 5
+    timeout: 60
+
+- name: Start APISIX container
+  become_user: root
+  become: true
+  community.docker.docker_container:
+    name: "{{ apisix_container_name }}"
+    image: "{{ apisix_image }}"
+    state: started
+    restart_policy: unless-stopped
+    timeout: 300
+    networks:
+      - name: "eth-staking-network-net"
+    networks_cli_compatible: true
+    volumes:
+      - "{{ apisix_config_dir }}/apisix/config.yaml:/usr/local/apisix/conf/config.yaml:ro"
+      - "{{ apisix_config_dir }}/apisix/apisix.yaml:/usr/local/apisix/conf/apisix.yaml:ro"
+    ports:
+      - "{{ apisix_gateway_port }}:9080"
+      - "{{ apisix_admin_port }}:9180"
+      - "{{ apisix_https_port }}:9443"
+  tags: [apisix]
+
+- name: Wait for APISIX to be ready
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: "{{ apisix_gateway_port }}"
+    delay: 10
+    timeout: 60
+

@@ -9,6 +9,7 @@ Ansible role for eth home stakers.
 - **Web UI**: Semaphore UI for easy Ansible playbook execution
 - **Monitoring**: Grafana, Prometheus, Node Exporter, and cAdvisor
 - **Security**: Firewall, JWT secrets, secure defaults
+- **API Gateway**: Apache APISIX with forward authentication for RPC endpoints
 - **Automation**: Backups, health checks, resource management, automatic resets
 - **Resource-efficient**: Configurable memory allocation
 
@@ -36,6 +37,10 @@ sudo ufw allow 22/tcp
 sudo ufw allow 8545/tcp  # JSON-RPC API
 sudo ufw allow 8551/tcp  # Engine API
 sudo ufw allow 30303/tcp # P2P communication
+
+# APISIX API Gateway (optional)
+sudo ufw allow 9080/tcp  # APISIX Gateway
+sudo ufw allow 9443/tcp  # APISIX HTTPS
 
 # Monitoring and Management
 sudo ufw allow 3000/tcp  # Grafana and Semaphore UI
@@ -156,6 +161,56 @@ validator_client: "lodestar"  # Options: "lighthouse" or "lodestar"
 ```
 
 **Note**: The validator client selection only applies when Charon is enabled. When Charon is disabled, Lighthouse is used as the default validator client.
+
+## APISIX API Gateway (Optional)
+
+Apache APISIX provides secure, authenticated access to your Ethereum node's RPC endpoints with forward authentication.
+
+### Quick Setup
+
+1. **Enable APISIX** in your configuration:
+```yaml
+# In host_vars/<your-host>.yml or vars/main.yml
+apisix_enabled: true
+
+# In secrets.yml - generate secure keys
+apisix_api_key: "your-secure-api-key"
+apisix_bearer_token: "your-secure-bearer-token"
+apisix_admin_key: "your-secure-admin-key"
+```
+
+2. **Deploy APISIX**:
+```bash
+ansible-playbook -i inventory main.yml --tags apisix
+```
+
+3. **Test Access**:
+```bash
+# Health check (no auth)
+curl http://<server>:9080/health
+
+# Consensus API (with auth)
+curl -H "X-API-Key: your-api-key" \
+  http://<server>:9080/consensus/eth/v1/node/version
+
+# Execution API (with auth)
+curl -H "X-API-Key: your-api-key" \
+  -X POST -H "Content-Type: application/json" \
+  --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' \
+  http://<server>:9080/execution/
+```
+
+### Features
+- ✅ **Forward Authentication**: API Key and Bearer Token support
+- ✅ **Route Protection**: Secure consensus and execution endpoints
+- ✅ **Prometheus Metrics**: Built-in metrics export on port 9091
+- ✅ **Health Checks**: Unauthenticated health endpoints
+- ✅ **Admin API**: Manage routes dynamically on port 9180
+
+### Documentation
+- **Quick Start**: [QUICKSTART-APISIX.md](QUICKSTART-APISIX.md)
+- **Full Guide**: [README-APISIX.md](README-APISIX.md)
+- **Usage Examples**: [examples/apisix-usage.sh](examples/apisix-usage.sh)
 
 ## Debugging Commands
 

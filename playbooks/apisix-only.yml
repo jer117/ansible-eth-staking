@@ -1,0 +1,99 @@
+---
+# Playbook to deploy only APISIX API Gateway
+# Usage: ansible-playbook -i inventory playbooks/apisix-only.yml
+
+- hosts: all
+  tasks:
+    - name: Check if host vars file exists
+      ansible.builtin.stat:
+        path: "host_vars/{{ ansible_host }}.yml"
+      register: host_vars_file
+      tags: [always]
+
+    - name: Load host-specific variables
+      ansible.builtin.include_vars:
+        file: "host_vars/{{ ansible_host }}.yml"
+      tags: [always]
+      when: host_vars_file.stat.exists
+
+    - name: Include main vars
+      ansible.builtin.include_vars: vars/main.yml
+      tags: [always]
+
+    - name: Include default vars
+      ansible.builtin.include_vars: defaults/main.yml
+      tags: [always]
+
+    - name: Display APISIX configuration
+      ansible.builtin.debug:
+        msg:
+          - "APISIX Enabled: {{ apisix_enabled }}"
+          - "APISIX Image: {{ apisix_image }}"
+          - "Gateway Port: {{ apisix_gateway_port }}"
+          - "Admin Port: {{ apisix_admin_port }}"
+          - "Execution Container: {{ execution_docker_container_name }}"
+          - "Consensus Container: {{ consensus_docker_container_name }}"
+      tags: [always]
+
+    - name: Ensure pip is installed
+      become: true
+      ansible.builtin.package:
+        name:
+          - python3-pip
+        state: present
+      tags: [always]
+      ignore_errors: true
+
+    - name: Install Python dependencies for Docker modules
+      become: true
+      ansible.builtin.pip:
+        name:
+          - requests
+          - docker
+        state: present
+      tags: [always]
+
+    - name: Create Docker network
+      become: true
+      community.docker.docker_network:
+        name: eth-staking-network-net
+        state: present
+
+    - name: Import APISIX tasks
+      ansible.builtin.import_tasks: ../tasks/apisix.yml
+      when: apisix_enabled | default(false)
+      tags: [apisix]
+
+    - name: Display post-deployment information
+      ansible.builtin.debug:
+        msg:
+          - "======================================"
+          - "  APISIX Deployment Complete"
+          - "======================================"
+          - ""
+          - "Gateway URL: http://{{ ansible_host }}:{{ apisix_gateway_port }}"
+          - "Admin API: http://{{ ansible_host }}:{{ apisix_admin_port }}"
+          - "Metrics: http://{{ ansible_host }}:{{ apisix_prometheus_port }}/apisix/prometheus/metrics"
+          - ""
+          - "Endpoints:"
+          - "  • Health: http://{{ ansible_host }}:{{ apisix_gateway_port }}/health"
+          - "  • Consensus API: http://{{ ansible_host }}:{{ apisix_gateway_port }}/consensus/*"
+          - "  • Execution API: http://{{ ansible_host }}:{{ apisix_gateway_port }}/execution/*"
+          - ""
+          - "Test with:"
+          - "  curl -H 'X-API-Key: YOUR_API_KEY' http://{{ ansible_host }}:{{ apisix_gateway_port }}/consensus/eth/v1/node/version"
+          - ""
+          - "Verify deployment:"
+          - "  ./examples/verify-apisix.sh {{ ansible_host }} YOUR_API_KEY"
+          - ""
+          - "======================================"
+      tags: [always]
+
+  handlers:
+    - name: Restart APISIX
+      become: true
+      community.docker.docker_container:
+        name: "{{ apisix_container_name }}"
+        state: started
+        restart: true
+
