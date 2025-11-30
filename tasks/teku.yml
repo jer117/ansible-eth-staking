@@ -1,0 +1,105 @@
+---
+- name: Create directory structure for eth beacon node (Teku)
+  become_user: "root"
+  become: true
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "root"
+    group: "root"
+    mode: "0755"
+  with_items:
+    - "{{ consensus_config_mount }}"
+    - "{{ consensus_data_mount }}"
+    - "{{ consensus_config_mount }}/exec_token"
+
+- name: Generate JWT secret token
+  become_user: root
+  become: true
+  ansible.builtin.shell: |
+    if [ ! -f "{{ consensus_config_mount }}/exec_token/token" ]; then
+      openssl rand -hex 32 | tr -d "\n" > "{{ consensus_config_mount }}/exec_token/token"
+      chmod 644 "{{ consensus_config_mount }}/exec_token/token"
+    fi
+  args:
+    creates: "{{ consensus_config_mount }}/exec_token/token"
+
+- name: Set required variables
+  ansible.builtin.set_fact:
+    network: "{{ hostvars[inventory_hostname]['network'] | default(hostvars[inventory_hostname]['NETWORK_NAME']) }}"
+    withdrawal_account_address: "{{ hostvars[inventory_hostname]['withdrawal_account_address'] }}"
+    beacon_published_ports: "{{ beacon_published_ports }}"
+
+- name: Debug variables
+  ansible.builtin.debug:
+    msg:
+      - "Network: {{ network }}"
+      - "Withdrawal Address: {{ withdrawal_account_address }}"
+      - "Consensus Client: Teku (Archive Mode)"
+
+- name: Pull Teku Docker image
+  become_user: root
+  become: true
+  community.docker.docker_image:
+    name: "{{ teku_image }}"
+    source: pull
+  tags: [consensus]
+
+- name: Start/Restart the Teku beacon client docker container
+  become_user: root
+  become: true
+  community.docker.docker_container:
+    user: "root"
+    image: "{{ teku_image }}"
+    keep_volumes: true
+    name: "{{ consensus_docker_container_name }}"
+    network_mode: bridge
+    networks:
+      - name: "eth-staking-network-net"
+    published_ports: "{{ beacon_published_ports }}"
+    restart_policy: unless-stopped
+    state: started
+    timeout: 300
+    env:
+      JAVA_OPTS: "-Xmx{{ teku_heap_size | default('4g') }}"
+    volumes:
+      - "{{ consensus_config_mount }}:/config/:rw"
+      - "{{ consensus_data_mount }}:/data"
+      - "{{ consensus_config_mount }}/exec_token:/exec_token:ro"
+    command: >
+      --network={{ network }}
+      --data-path=/data
+      --data-storage-mode=archive
+      --data-storage-archive-frequency=1024
+      --rest-api-enabled=true
+      --rest-api-port={{ consensus_client_http_api_port }}
+      --rest-api-host-allowlist=*
+      --rest-api-interface=0.0.0.0
+      --rest-api-cors-origins=*
+      --p2p-enabled=true
+      --p2p-port={{ consensus_p2p_port | default('9000') }}
+      --p2p-advertised-port={{ consensus_p2p_port | default('9000') }}
+      --p2p-peer-upper-bound={{ consensus_target_peers | default('100') }}
+      --ee-endpoint=http://{{ execution_docker_container_name }}:{{ execution_auth_port }}
+      --ee-jwt-secret-file=/exec_token/token
+      --logging={{ teku_log_level | default('INFO') }}
+      --log-destination=CONSOLE
+      --metrics-enabled=true
+      --metrics-interface=0.0.0.0
+      --metrics-port={{ consensus_monitoring_port }}
+      --metrics-host-allowlist=*
+      --validators-proposer-default-fee-recipient={{ withdrawal_account_address }}
+      --validators-graffiti="{{ validator_graffiti | default('Teku Archive Node') }}"
+      {% if network == "mainnet" %}
+      --initial-state=https://mainnet.checkpoint.sigp.io/eth/v2/debug/beacon/states/finalized
+      --checkpoint-sync-url=https://mainnet.checkpoint.sigp.io
+      {% elif network == "hoodi" %}
+      --checkpoint-sync-url=https://hoodi-checkpoint-sync.stakely.io
+      {% elif network == "sepolia" %}
+      --initial-state=https://sepolia.checkpoint.sigp.io/eth/v2/debug/beacon/states/finalized
+      --checkpoint-sync-url=https://sepolia.checkpoint.sigp.io
+      {% elif network == "gnosis" %}
+      --checkpoint-sync-url=https://checkpoint.gnosischain.com
+      {% endif %}
+      --reconstruct-historic-states=true
+

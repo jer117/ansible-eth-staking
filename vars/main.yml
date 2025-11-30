@@ -21,11 +21,11 @@ eth_ansible_execution_1_websocket_port: 8548
 
 # Execution / docker mounts (override if neccessary)
 execution_config_mount: /root/.nethermind/exec_token
-execution_data_mount: /root/.nethermind/data/
+execution_data_mount: /data/execution
 
 # Consensus / docker mounts (override if neccessary)
 consensus_config_mount: /root/.lighthouse/config
-consensus_data_mount: /root/.lighthouse/data/
+consensus_data_mount: /data/consensus
 consensus_jwt_secret_mount: /root/.lighthouse/config/exec_token
 
 docker_config_mount: /root/.nethermind
@@ -73,9 +73,21 @@ consensus_client_http_api_port: 5062
 consensus_client_p2p_port: 9000
 consensus_client_quic_port: 9001
 
+# Lighthouse cache configuration for rewards API and state queries
+# Increasing these can help with rewards/attestations endpoint performance
+consensus_shuffling_cache_size: 64  # Cache size in epochs for shuffling data (helps with rewards API)
+consensus_state_cache_size: 256     # Number of states to cache in memory (default: 128)
+
+# Teku-specific configuration
+# Teku JVM heap size - adjust based on your server's memory
+teku_heap_size: "8g"               # Default: 4GB, recommended: 8GB+ for archive nodes
+teku_log_level: "INFO"             # Options: TRACE, DEBUG, INFO, WARN, ERROR
+
 # Beacon Node published ports
 beacon_published_ports:
-  - 127.0.0.1:{{ consensus_client_http_api_port }}:{{ consensus_client_http_api_port }}
+  - "127.0.0.1:{{ consensus_client_http_api_port }}:{{ consensus_client_http_api_port }}"
+  - "{{ consensus_client_quic_port }}:{{ consensus_client_quic_port }}"
+  - "{{ consensus_client_p2p_port }}:{{ consensus_client_p2p_port }}"
 
 validator_published_ports:
   - 127.0.0.1:{{ validator_client_http_api_port }}:{{ validator_client_http_api_port }}

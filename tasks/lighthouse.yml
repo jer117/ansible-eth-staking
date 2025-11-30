@@ -24,12 +24,6 @@
   args:
     creates: "{{ consensus_config_mount }}/exec_token/token"
 
-# Load and verify required variables
-- name: Load host vars again if needed
-  ansible.builtin.include_vars:
-    file: "host_vars/{{ ansible_host }}.yml"
-  tags: [always]
-
 - name: Set required variables
   ansible.builtin.set_fact:
     network: "{{ hostvars[inventory_hostname]['network'] | default(hostvars[inventory_hostname]['NETWORK_NAME']) }}"
@@ -41,6 +35,14 @@
     msg:
       - "Network: {{ network }}"
       - "Withdrawal Address: {{ withdrawal_account_address }}"
+
+- name: Pull Lighthouse Docker image
+  become_user: root
+  become: true
+  community.docker.docker_image:
+    name: "{{ lighthouse_image }}"
+    source: pull
+  tags: [consensus]
 
 - name: Start/Restart the beacon client docker container
   become_user: root
@@ -56,6 +58,7 @@
     published_ports: "{{ beacon_published_ports }}"
     restart_policy: unless-stopped
     state: started
+    timeout: 300
     volumes:
       - "{{ consensus_config_mount }}:/config/:rw"
       - "{{ consensus_data_mount }}:/data"
@@ -79,10 +82,17 @@
       --metrics-port {{ consensus_monitoring_port }}
       --suggested-fee-recipient {{ withdrawal_account_address }}
       --network {{ network }}
+      --disable-backfill-rate-limiting
+      --reconstruct-historic-states
+      --historic-state-cache-size=18
+      --shuffling-cache-size {{ consensus_shuffling_cache_size | default('64') }}
+      --state-cache-size {{ consensus_state_cache_size | default('256') }}
       {% if network == "mainnet" %}
       --checkpoint-sync-url https://mainnet.checkpoint.sigp.io
       {% elif network == "hoodi" %}
       --checkpoint-sync-url https://hoodi-checkpoint-sync.stakely.io
       {% elif network == "sepolia" %}
       --checkpoint-sync-url https://sepolia.checkpoint.sigp.io
+      {% elif network == "gnosis" %}
+      --checkpoint-sync-url https://checkpoint.gnosischain.com
       {% endif %}
