@@ -1,5 +1,5 @@
 ---
-- name: Create directory structure for eth beacon node
+- name: Create directory structure for eth beacon node (Teku)
   become_user: "root"
   become: true
   ansible.builtin.file:
@@ -35,21 +35,22 @@
     msg:
       - "Network: {{ network }}"
       - "Withdrawal Address: {{ withdrawal_account_address }}"
+      - "Consensus Client: Teku (Archive Mode)"
 
-- name: Pull Lighthouse Docker image
+- name: Pull Teku Docker image
   become_user: root
   become: true
   community.docker.docker_image:
-    name: "{{ lighthouse_image }}"
+    name: "{{ teku_image }}"
     source: pull
   tags: [consensus]
 
-- name: Start/Restart the beacon client docker container
+- name: Start/Restart the Teku beacon client docker container
   become_user: root
   become: true
   community.docker.docker_container:
     user: "root"
-    image: "{{ lighthouse_image }}"
+    image: "{{ teku_image }}"
     keep_volumes: true
     name: "{{ consensus_docker_container_name }}"
     network_mode: bridge
@@ -59,40 +60,46 @@
     restart_policy: unless-stopped
     state: started
     timeout: 300
+    env:
+      JAVA_OPTS: "-Xmx{{ teku_heap_size | default('4g') }}"
     volumes:
       - "{{ consensus_config_mount }}:/config/:rw"
       - "{{ consensus_data_mount }}:/data"
       - "{{ consensus_config_mount }}/exec_token:/exec_token:ro"
     command: >
-      lighthouse bn
-      --datadir /data
-      --http
-      --http-port {{ consensus_client_http_api_port }}
-      --http-address "0.0.0.0"
-      --http-allow-origin "*"
-      --listen-address 0.0.0.0
-      --port {{ consensus_p2p_port | default('9000') }}
-      --quic-port {{ consensus_quic_port | default('9001') }}
-      --target-peers {{ consensus_target_peers | default('100') }}
-      --execution-endpoint http://{{ execution_docker_container_name }}:{{ execution_auth_port }}
-      --execution-jwt "/exec_token/token"
-      --debug-level info
-      --metrics
-      --metrics-address 0.0.0.0
-      --metrics-port {{ consensus_monitoring_port }}
-      --suggested-fee-recipient {{ withdrawal_account_address }}
-      --network {{ network }}
-      --disable-backfill-rate-limiting
-      --reconstruct-historic-states
-      --historic-state-cache-size=18
-      --shuffling-cache-size {{ consensus_shuffling_cache_size | default('64') }}
-      --state-cache-size {{ consensus_state_cache_size | default('256') }}
+      --network={{ network }}
+      --data-path=/data
+      --data-storage-mode=archive
+      --data-storage-archive-frequency=1024
+      --rest-api-enabled=true
+      --rest-api-port={{ consensus_client_http_api_port }}
+      --rest-api-host-allowlist=*
+      --rest-api-interface=0.0.0.0
+      --rest-api-cors-origins=*
+      --p2p-enabled=true
+      --p2p-port={{ consensus_p2p_port | default('9000') }}
+      --p2p-advertised-port={{ consensus_p2p_port | default('9000') }}
+      --p2p-peer-upper-bound={{ consensus_target_peers | default('100') }}
+      --ee-endpoint=http://{{ execution_docker_container_name }}:{{ execution_auth_port }}
+      --ee-jwt-secret-file=/exec_token/token
+      --logging={{ teku_log_level | default('INFO') }}
+      --log-destination=CONSOLE
+      --metrics-enabled=true
+      --metrics-interface=0.0.0.0
+      --metrics-port={{ consensus_monitoring_port }}
+      --metrics-host-allowlist=*
+      --validators-proposer-default-fee-recipient={{ withdrawal_account_address }}
+      --validators-graffiti="{{ validator_graffiti | default('Teku Archive Node') }}"
       {% if network == "mainnet" %}
-      --checkpoint-sync-url https://mainnet.checkpoint.sigp.io
+      --initial-state=https://mainnet.checkpoint.sigp.io/eth/v2/debug/beacon/states/finalized
+      --checkpoint-sync-url=https://mainnet.checkpoint.sigp.io
       {% elif network == "hoodi" %}
-      --checkpoint-sync-url https://hoodi-checkpoint-sync.stakely.io
+      --checkpoint-sync-url=https://hoodi-checkpoint-sync.stakely.io
       {% elif network == "sepolia" %}
-      --checkpoint-sync-url https://sepolia.checkpoint.sigp.io
+      --initial-state=https://sepolia.checkpoint.sigp.io/eth/v2/debug/beacon/states/finalized
+      --checkpoint-sync-url=https://sepolia.checkpoint.sigp.io
       {% elif network == "gnosis" %}
-      --checkpoint-sync-url https://checkpoint.gnosischain.com
+      --checkpoint-sync-url=https://checkpoint.gnosischain.com
       {% endif %}
+      --reconstruct-historic-states=true
+

@@ -31,7 +31,7 @@ telegram_enabled: false
 # telegram_chat_id: "YOUR_CHAT_ID"
 
 # Feature flags
-cadvisor_enabled: "{{ cadvisor_enabled | default(false) }}"
+# cadvisor_enabled is defined in defaults/main.yml and can be overridden in host_vars
 
 # Security
 grafana_admin_password: "{{ GRAFANA_ADMIN_PASSWORD | default('admin') }}" 
