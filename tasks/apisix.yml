@@ -47,7 +47,7 @@
     source: pull
   tags: [apisix]
 
-- name: Start etcd container for APISIX
+- name: Start etcd container for APISIX (AMD64)
   become_user: root
   become: true
   community.docker.docker_container:
@@ -68,6 +68,33 @@
       ETCD_LISTEN_CLIENT_URLS: "http://0.0.0.0:2379"
     ports:
       - "127.0.0.1:2379:2379"
+  when: ansible_architecture != "aarch64"
+
+- name: Start etcd container for APISIX (ARM64)
+  become_user: root
+  become: true
+  community.docker.docker_container:
+    name: "{{ apisix_etcd_container_name }}"
+    image: "{{ apisix_etcd_image }}"
+    state: started
+    restart_policy: unless-stopped
+    timeout: 300
+    user: root
+    networks:
+      - name: "eth-staking-network-net"
+    networks_cli_compatible: true
+    volumes:
+      - "{{ apisix_data_dir }}/etcd:/etcd-data"
+    env:
+      ETCD_UNSUPPORTED_ARCH: "arm64"
+      ETCD_ENABLE_V2: "true"
+      ALLOW_NONE_AUTHENTICATION: "yes"
+      ETCD_ADVERTISE_CLIENT_URLS: "http://{{ apisix_etcd_container_name }}:2379"
+      ETCD_LISTEN_CLIENT_URLS: "http://0.0.0.0:2379"
+      ETCD_DATA_DIR: "/etcd-data"
+    ports:
+      - "127.0.0.1:2379:2379"
+  when: ansible_architecture == "aarch64"
 
 - name: Wait for etcd to be ready
   ansible.builtin.wait_for:

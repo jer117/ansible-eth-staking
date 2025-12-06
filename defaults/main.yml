@@ -68,7 +68,7 @@ apisix_image: "apache/apisix:3.14.1-debian"
 # Note: apisix_etcd_image is automatically set based on system architecture detection
 apisix_etcd_image: "bitnamilegacy/etcd:3.4.9"  # Fallback/default (will be overridden by architecture detection)
 apisix_etcd_image_amd64: "bitnamilegacy/etcd:3.4.9"
-apisix_etcd_image_arm64: "jer117/eth-ansible-apisix-etcd-arm:3.14.0"
+apisix_etcd_image_arm64: "rancher/coreos-etcd:v3.4.15-arm64"
 apisix_container_name: "eth-ansible-apisix"
 apisix_etcd_container_name: "eth-ansible-apisix-etcd"
 apisix_config_dir: "/root/.eth-staking/config/apisix"
