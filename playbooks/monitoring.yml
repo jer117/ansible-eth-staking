@@ -2,10 +2,9 @@
 - name: Set up Ethereum monitoring stack
   hosts: ethereum_nodes
   become: true
+  # Defaults come from group_vars/all/ (playbooks/group_vars links to the repo's), which
+  # Ansible loads automatically below host_vars, so host_vars override them.
   vars_files:
-    - ../defaults/main.yml
-    - ../vars/monitoring.yml
-    - ../vars/main.yml
     - ../secrets.yml
   
   tasks:

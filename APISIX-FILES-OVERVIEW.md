@@ -63,7 +63,7 @@
 
 ### Configuration Files
 
-#### 4. `defaults/main.yml` (MODIFIED)
+#### 4. `group_vars/all/defaults.yml` (MODIFIED)
 **Purpose**: Default variables for APISIX  
 **Added Variables**:
 ```yaml
@@ -81,7 +81,7 @@ apisix_https_port: 9443
 apisix_prometheus_port: 9091
 ```
 
-`apisix_api_key` and `apisix_bearer_token` are deliberately not defined here: `defaults/main.yml` is loaded with `include_vars`, which would override host_vars. Set them in host_vars/secrets, or leave them unset to have them generated.
+`apisix_api_key` and `apisix_bearer_token` have no default here: when they are unset, the playbook generates them. Set them in host_vars or `secrets.yml` to use your own. Any of the defaults above can be overridden in host_vars or with `-e`.
 
 ---
 
@@ -279,7 +279,7 @@ ansible-playbook -i inventory playbooks/apisix-only.yml
 ### Template → Configuration Flow
 ```
 templates/apisix-config.yaml.j2
-    ↓ (rendered with vars from defaults/main.yml)
+    ↓ (rendered with vars from group_vars/all/defaults.yml)
 → /root/.eth-staking/config/apisix/apisix/config.yaml
     ↓ (mounted to container)
 → APISIX container: /usr/local/apisix/conf/config.yaml
@@ -309,7 +309,7 @@ tasks/apisix.yml
     ↓ (uses templates)
 templates/apisix-*.j2
     ↓ (reads variables)
-defaults/main.yml + vars/main.yml + host_vars/secrets.yml
+group_vars/all/*.yml (defaults) < host_vars < -e / secrets.yml
 ```
 
 ### Documentation Hierarchy
@@ -332,18 +332,18 @@ apisix_bearer_token     # Used in: templates/apisix-routes.yaml.j2 (via apisix_b
 
 ### Container Name Variables (Used across templates)
 ```yaml
-execution_docker_container_name    # From: defaults/main.yml
-consensus_docker_container_name    # From: defaults/main.yml
-apisix_container_name              # From: defaults/main.yml
-apisix_etcd_container_name         # From: defaults/main.yml (only used to remove the old etcd container)
+execution_docker_container_name    # From: group_vars/all/defaults.yml
+consensus_docker_container_name    # From: group_vars/all/defaults.yml
+apisix_container_name              # From: group_vars/all/defaults.yml
+apisix_etcd_container_name         # From: group_vars/all/defaults.yml (only used to remove the old etcd container)
 ```
 
 ### Port Variables (Used in routing)
 ```yaml
-eth_ansible_execution_1_rpc_port   # From: vars/main.yml
-consensus_client_http_api_port     # From: vars/main.yml
-apisix_gateway_port                # From: defaults/main.yml
-apisix_https_port                  # From: defaults/main.yml
+eth_ansible_execution_1_rpc_port   # From: group_vars/all/vars.yml
+consensus_client_http_api_port     # From: group_vars/all/vars.yml
+apisix_gateway_port                # From: group_vars/all/defaults.yml
+apisix_https_port                  # From: group_vars/all/defaults.yml
 ```
 
 ## Integration Points
@@ -374,7 +374,7 @@ apisix_https_port                  # From: defaults/main.yml
 ### For Configuration Changes
 - `templates/apisix-routes.yaml.j2` - Route modifications
 - `templates/apisix-config.yaml.j2` - APISIX settings
-- `defaults/main.yml` - Default values
+- `group_vars/all/defaults.yml` - Default values
 
 ### For Troubleshooting
 - `README-APISIX.md` - Troubleshooting section

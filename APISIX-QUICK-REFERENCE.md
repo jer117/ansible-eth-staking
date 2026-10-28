@@ -147,7 +147,7 @@ docker logs --tail 50 eth-ansible-apisix 2>&1 | grep -i -E 'error|config_yaml'
 | `tasks/apisix.yml` | Ansible deployment tasks |
 | `templates/apisix-config.yaml.j2` | APISIX config template (standalone mode) |
 | `templates/apisix-routes.yaml.j2` | Routes, consumers & auth config |
-| `defaults/main.yml` | Default variables |
+| `group_vars/all/defaults.yml` | Default variables |
 | `credentials/<host>/apisix/` | Generated client credentials (control machine) |
 | `examples/verify-apisix.sh` | Verification script |
 | `examples/apisix-usage.sh` | Usage examples |
@@ -165,8 +165,7 @@ apisix_bearer_token: "<random value>"
 ```yaml
 apisix_enable_ipv6: false   # default true; for hosts without IPv6
 
-# Defined in defaults/main.yml, which outranks host_vars:
-# change these there, in vars/main.yml, or with -e
+# Defaults from group_vars/all/defaults.yml; override in host_vars or with -e
 apisix_enabled: true
 apisix_gateway_port: 9080
 apisix_https_port: 9443

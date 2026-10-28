@@ -12,7 +12,7 @@ An Ansible role for deploying Apache APISIX as an API Gateway with API key / bea
 - **`templates/apisix-routes.yaml.j2`**: APISIX routes, consumers and key-auth configuration
 
 #### Configuration Files
-- **`defaults/main.yml`**: Updated with APISIX variables and defaults
+- **`group_vars/all/defaults.yml`**: Updated with APISIX variables and defaults
 - **`main.yml`**: Updated to include APISIX deployment task
 - **`example.apisix-secrets.yml`**: Example credentials file
 - **`example.env.apisix`**: Environment variables example
@@ -94,7 +94,7 @@ apisix_bearer_token: "<random value>"
 
 If these are not set, the playbook generates random 48-character values and stores them on the control machine in `credentials/<inventory_hostname>/apisix/api_key` and `.../bearer_token` (next to your inventory file, gitignored, mode 0600). Later runs reuse them. The playbook stops if a credential is shorter than 16 characters or contains the `changeme` / `change-this` example placeholders.
 
-### Optional Variables (defaults/main.yml)
+### Optional Variables (group_vars/all/defaults.yml; override in host_vars or with -e)
 
 ```yaml
 # Enable APISIX

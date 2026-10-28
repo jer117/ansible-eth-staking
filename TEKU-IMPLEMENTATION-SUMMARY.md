@@ -12,7 +12,7 @@ This implementation adds Teku as an alternative consensus client alongside Light
 
 ## Files Modified
 
-1. **`defaults/main.yml`**
+1. **`group_vars/all/defaults.yml`** (formerly `defaults/main.yml`)
    - Added Teku image variables for AMD64 and ARM64
    - Added `consensus_client` variable (lighthouse/teku)
    - Added `teku_heap_size` and `teku_log_level` variables
@@ -22,7 +22,7 @@ This implementation adds Teku as an alternative consensus client alongside Light
    - Added conditional import for Lighthouse vs Teku tasks
    - Updated debug output to show consensus client selection
 
-3. **`vars/main.yml`**
+3. **`group_vars/all/vars.yml`** (formerly `vars/main.yml`)
    - Added Teku-specific configuration variables
 
 4. **`example.secrets.yml`**
@@ -35,7 +35,7 @@ This implementation adds Teku as an alternative consensus client alongside Light
 
 ### Enable Teku on a Host
 
-Add to your `host_vars/<IP>.yml` or `secrets.yml`:
+Add to your `host_vars/<your-host>.yml` or `secrets.yml`:
 
 ```yaml
 consensus_client: "teku"
@@ -45,8 +45,8 @@ consensus_client: "teku"
 
 ```yaml
 # Override defaults if needed
-teku_heap_size: "8g"        # JVM heap size (default: 4g)
-teku_log_level: "INFO"      # Log level (default: INFO)
+teku_heap_size: "12g"       # JVM heap size (default: 8g)
+teku_log_level: "DEBUG"     # Log level (default: INFO)
 ```
 
 ### Deploy
@@ -118,7 +118,7 @@ Teku is configured as an **archive node** with:
 ### Lighthouse → Teku
 
 ```yaml
-# In host_vars/<IP>.yml
+# In host_vars/<your-host>.yml
 consensus_client: "teku"
 ```
 
@@ -129,7 +129,7 @@ ansible-playbook -i inventory main.yml --tags consensus
 ### Teku → Lighthouse
 
 ```yaml
-# In host_vars/<IP>.yml
+# In host_vars/<your-host>.yml
 consensus_client: "lighthouse"
 ```
 

@@ -1,28 +1,30 @@
 ---
+# Default variables for every host.
+#
+# Ansible loads group_vars/all/ automatically, with lower precedence than inventory
+# host_vars. Override any value here in host_vars/<inventory_hostname>.yml (what
+# setup.py writes); -e / --extra-vars (e.g. -e @secrets.yml) overrides both.
+
 # Docker Images
 # ansible-eth-staking vars
 execution_docker_container_name: "eth-ansible-execution-1"
 consensus_docker_container_name: "eth-ansible-consensus-1"
 validator_docker_container_name: "eth-ansible-validator-1"
 
+# Client images per architecture.
+# main.yml sets nethermind_image, lighthouse_image and teku_image from the _amd64 or
+# _arm64 entry for the host's architecture, unless you set them yourself: set e.g.
+# nethermind_image in host_vars to pin a specific image on that host.
+
 # Execution Clients
-# Note: nethermind_image is automatically set based on system architecture detection
-# Override nethermind_image in host_vars if you need a specific image
-nethermind_image: "nethermind/nethermind:2.2.2"  # Fallback/default (will be overridden by architecture detection)
 nethermind_image_amd64: "nethermind/nethermind:2.2.2"
 nethermind_image_arm64: "jer117/docker-eth-nethermind:2.2.2"
 
 # Consensus Clients
-# Note: lighthouse_image is automatically set based on system architecture detection
-# Override lighthouse_image in host_vars if you need a specific image
-lighthouse_image: "sigp/lighthouse:v8.3.2"  # Fallback/default (will be overridden by architecture detection)
 lighthouse_image_amd64: "sigp/lighthouse:v8.3.2"
 lighthouse_image_arm64: "sigp/lighthouse:v8.3.2-arm64"
 
 # Teku consensus client
-# Note: teku_image is automatically set based on system architecture detection
-# Override teku_image in host_vars if you need a specific image
-teku_image: "consensys/teku:26.10.3"  # Fallback/default (will be overridden by architecture detection)
 teku_image_amd64: "consensys/teku:26.10.3"
 teku_image_arm64: "consensys/teku:26.10.3"  # multi-arch; Teku no longer publishes -arm64 tags
 
@@ -45,13 +47,9 @@ execution:
     sepolia: sepolia
     hoodi: hoodi
 
-# Monitoring Vars
-prometheus_name: "prometheus"
-
+# Monitoring Vars (container names, images and ports are in monitoring.yml)
 grafana_agent_http_port: 12345
 grafana_agent_grpc_port: 9095
-
-node_exporter_name: "node-exporter"
 
 # Cadvisor Vars
 cadvisor_enabled: true
@@ -61,7 +59,8 @@ cadvisor_image: ghcr.io/google/cadvisor:v0.60.6
 # the default CADVISOR_HEALTHCHECK_URL is "http://localhost:8080/healthz"
 # so match it
 cadvisor_internal_port: 8080
-cadvisor_port: 24165
+# Host port cAdvisor is published on
+cadvisor_port: 8080
 
 # APISIX API Gateway Vars
 apisix_enabled: true
@@ -76,7 +75,6 @@ apisix_gateway_port: 9080
 apisix_https_port: 9443
 apisix_prometheus_port: 9091
 
-# APISIX client credentials (apisix_api_key, apisix_bearer_token) are deliberately not
-# defined here: this file is loaded with include_vars, which would override host_vars.
-# Set them in host_vars/secrets, or leave them unset and tasks/apisix.yml generates random
-# ones under credentials/<host>/apisix/ on the control machine.
+# APISIX client credentials (apisix_api_key, apisix_bearer_token) have no default: when
+# they are unset, tasks/apisix.yml generates random ones under credentials/<host>/apisix/
+# on the control machine. Set them in host_vars or secrets.yml to use your own.

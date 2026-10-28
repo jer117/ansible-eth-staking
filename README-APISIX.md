@@ -59,7 +59,7 @@ There is no etcd and no Admin API. To change routes, credentials or plugins, edi
 
 ## Configuration
 
-### Variables (defaults/main.yml)
+### Variables (group_vars/all/defaults.yml)
 
 ```yaml
 # Enable/Disable APISIX
@@ -81,9 +81,9 @@ apisix_https_port: 9443         # HTTPS port
 
 Prometheus metrics are served on port 9091 inside the Docker network only (see [Monitoring](#monitoring)).
 
-`main.yml` loads `defaults/main.yml` with `include_vars`, which takes precedence over host_vars. To change one of the values above, edit `defaults/main.yml` or `vars/main.yml`, or pass it with `-e`.
+These are defaults: override any of them in `host_vars/<host>.yml`, or pass them with `-e` (which overrides host_vars too). See [Overriding Defaults](README.md#overriding-defaults).
 
-These optional variables are not defined in `defaults/main.yml`, so you can set them in host_vars or `secrets.yml`:
+These optional variables have no default in `group_vars/all/`; set them in host_vars or `secrets.yml`:
 
 ```yaml
 apisix_api_key: "..."          # Client API key (generated if unset, see below)
@@ -150,7 +150,7 @@ The header value must match exactly, including the `Bearer ` prefix.
 
 ### Enable APISIX:
 
-APISIX is enabled by default (`apisix_enabled: true` in `defaults/main.yml`).
+APISIX is enabled by default (`apisix_enabled: true` in `group_vars/all/defaults.yml`). Set `apisix_enabled: false` in host_vars to skip it on a host.
 
 ### Run the playbook:
 

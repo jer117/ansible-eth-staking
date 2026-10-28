@@ -18,7 +18,7 @@ Add the two lines to your `secrets.yml` or `host_vars/<your-host>.yml`. The play
 
 ## 2. Enable APISIX
 
-APISIX is enabled by default (`apisix_enabled: true` in `defaults/main.yml`).
+APISIX is enabled by default (`apisix_enabled: true` in `group_vars/all/defaults.yml`).
 
 ## 3. Deploy APISIX
 

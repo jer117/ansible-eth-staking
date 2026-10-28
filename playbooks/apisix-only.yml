@@ -4,15 +4,8 @@
 
 - hosts: all
   tasks:
-    # Paths are relative to this playbook's directory, so step up to the repo root.
-    # Defaults load first so the host-specific file below can override them.
-    - name: Include default vars
-      ansible.builtin.include_vars: ../defaults/main.yml
-      tags: [always]
-
-    - name: Include main vars
-      ansible.builtin.include_vars: ../vars/main.yml
-      tags: [always]
+    # Defaults come from group_vars/all/ (playbooks/group_vars links to the repo's), which
+    # Ansible loads automatically below host_vars, so host_vars and -e override them.
 
     # Supports host_vars files named after the host's IP. Files named after the inventory
     # hostname are loaded by Ansible automatically.

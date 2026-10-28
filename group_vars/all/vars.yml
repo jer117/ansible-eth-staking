@@ -80,7 +80,7 @@ consensus_state_cache_size: 256     # Number of states to cache in memory (defau
 
 # Teku-specific configuration
 # Teku JVM heap size - adjust based on your server's memory
-teku_heap_size: "8g"               # Default: 4GB, recommended: 8GB+ for archive nodes
+teku_heap_size: "8g"               # 8g+ recommended for archive nodes
 teku_log_level: "INFO"             # Options: TRACE, DEBUG, INFO, WARN, ERROR
 
 # Beacon Node published ports

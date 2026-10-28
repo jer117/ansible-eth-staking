@@ -45,7 +45,7 @@ sudo ufw allow 9443/tcp  # APISIX HTTPS
 # Monitoring and Management
 sudo ufw allow 3000/tcp  # Grafana and Semaphore UI
 sudo ufw allow 9090/tcp  # Prometheus
-sudo ufw allow 24165/tcp # cAdvisor
+sudo ufw allow 8080/tcp  # cAdvisor (cadvisor_port)
 sudo ufw allow 9093/tcp  # AlertManager
 
 # Enable UFW
@@ -89,6 +89,30 @@ python3 setup.py
 # Run the playbook
 ansible-playbook -i inventory main.yml
 ```
+
+## Overriding Defaults
+
+Default settings live in `group_vars/all/` (`defaults.yml`, `vars.yml`, `monitoring.yml`). Ansible loads them automatically, below your own config, so you can override any of them:
+
+| Source | Precedence |
+|--------|------------|
+| `group_vars/all/*.yml` (repo defaults) | lowest |
+| `host_vars/<inventory-hostname>.yml` (written by `setup.py`) | overrides the defaults |
+| `-e` / `--extra-vars`, e.g. `-e @secrets.yml` | overrides everything |
+
+For example, to turn MEV-Boost off and publish cAdvisor on another port for one server:
+
+```yaml
+# host_vars/validator1.yml (named after the host in your inventory)
+mev_boost_enabled: "false"
+cadvisor_port: 9999
+```
+
+Client images are picked for the host's architecture from the `*_image_amd64` / `*_image_arm64` defaults. Set `nethermind_image`, `lighthouse_image` or `teku_image` in host_vars to pin a specific image instead.
+
+To override a value for every host, use a group file such as `group_vars/ethereum_nodes.yml`. A `group_vars/all.yml` next to an inventory kept outside this repository ranks below the repo's `group_vars/all/`, so it would not take effect.
+
+> **Upgrading from an older checkout:** `main.yml` used to load the defaults with `include_vars`, which outranks host_vars, so settings in host_vars that also had a default (for example `mev_boost_enabled: "false"` from `setup.py`, `charon_enabled`, `cadvisor_port`, `teku_heap_size`) were silently ignored. They now take effect. Review your host_vars before the next run.
 
 # How to generate validator keys.
 - https://hoodi.launchpad.ethereum.org/en/generate-keys
@@ -168,7 +192,7 @@ Apache APISIX provides secure, authenticated access to your Ethereum node's RPC 
 
 ### Quick Setup
 
-1. **Credentials** (optional): APISIX is enabled by default (`apisix_enabled: true` in `defaults/main.yml`). Set your own client credentials, or leave them unset and Ansible generates random ones:
+1. **Credentials** (optional): APISIX is enabled by default (`apisix_enabled: true` in `group_vars/all/defaults.yml`). Set your own client credentials, or leave them unset and Ansible generates random ones:
 ```yaml
 # In secrets.yml or host_vars/<your-host>.yml - generate with: openssl rand -hex 32
 apisix_api_key: "<random value>"

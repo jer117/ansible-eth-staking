@@ -15,7 +15,7 @@ Teku is a Java-based Ethereum consensus client developed by Consensys. This conf
 
 ### 1. Enable Teku in Host Variables
 
-In your `host_vars/<IP>.yml` or `secrets.yml`, add:
+In your `host_vars/<your-host>.yml` or `secrets.yml`, add:
 
 ```yaml
 consensus_client: "teku"
@@ -25,14 +25,14 @@ If not specified, it defaults to `lighthouse`.
 
 ### 2. Optional: Configure Teku Settings
 
-In your host_vars file, you can override these defaults:
+The defaults are in `group_vars/all/vars.yml`. Override them in your host_vars file (or with `-e`):
 
 ```yaml
 # Teku JVM heap size - adjust based on your server's memory
-teku_heap_size: "8g"  # Default: 4g, recommended 8g+ for archive nodes
+teku_heap_size: "12g"  # Default: 8g, recommended 8g+ for archive nodes
 
 # Teku logging level
-teku_log_level: "INFO"  # Options: TRACE, DEBUG, INFO, WARN, ERROR
+teku_log_level: "DEBUG"  # Default: INFO. Options: TRACE, DEBUG, INFO, WARN, ERROR
 ```
 
 ### 3. Run the Playbook
@@ -232,10 +232,7 @@ docker exec eth-ansible-consensus-1 teku --version
    ```
 
 4. **Monitor Java GC**:
-   - Add to JVM options if needed:
-   ```yaml
-   teku_java_opts: "-Xmx8g -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
-   ```
+   - The container's `JAVA_OPTS` is set to `-Xmx<teku_heap_size>` in `tasks/teku.yml`; there is no variable for other JVM options, so add GC flags there if you need them.
 
 ## Additional Resources
 

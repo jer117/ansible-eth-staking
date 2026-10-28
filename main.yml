@@ -1,25 +1,19 @@
 ---
 - hosts: all
   tasks:
-    # Note: Ansible automatically loads host_vars/<inventory_hostname>.yml
-    # We load defaults and common vars explicitly for proper precedence
-    - name: Include default vars
-      ansible.builtin.include_vars: defaults/main.yml
-      tags: [always]
+    # Variables are not loaded here on purpose. Ansible loads them automatically, lowest
+    # precedence first:
+    #   group_vars/all/*.yml                  repo defaults
+    #   host_vars/<inventory_hostname>.yml    your config (written by setup.py)
+    #   -e / --extra-vars (e.g. -e @secrets.yml)
+    # Loading the defaults with include_vars would rank them above host_vars.
 
-    - name: Include main vars
-      ansible.builtin.include_vars: vars/main.yml
-      tags: [always]
-
-    - name: Include monitoring vars
-      ansible.builtin.include_vars: vars/monitoring.yml
-      tags: [always]
-
+    # Uses an image set in host_vars (or -e) as is; otherwise picks the _amd64/_arm64 default.
     - name: Detect system architecture and set appropriate Docker images
       ansible.builtin.set_fact:
-        nethermind_image: "{{ nethermind_image_arm64 if ansible_architecture == 'aarch64' else nethermind_image_amd64 }}"
-        lighthouse_image: "{{ lighthouse_image_arm64 if ansible_architecture == 'aarch64' else lighthouse_image_amd64 }}"
-        teku_image: "{{ teku_image_arm64 if ansible_architecture == 'aarch64' else teku_image_amd64 }}"
+        nethermind_image: "{{ nethermind_image | default(nethermind_image_arm64 if ansible_architecture == 'aarch64' else nethermind_image_amd64) }}"
+        lighthouse_image: "{{ lighthouse_image | default(lighthouse_image_arm64 if ansible_architecture == 'aarch64' else lighthouse_image_amd64) }}"
+        teku_image: "{{ teku_image | default(teku_image_arm64 if ansible_architecture == 'aarch64' else teku_image_amd64) }}"
       tags: [always]
 
     - name: Display detected architecture and selected images
@@ -29,7 +23,7 @@
           - "Selected Nethermind image: {{ nethermind_image }}"
           - "Selected Lighthouse image: {{ lighthouse_image }}"
           - "Selected Teku image: {{ teku_image }}"
-          - "Consensus client: {{ consensus_client }}"
+          - "Consensus client: {{ consensus_client | default('lighthouse') }}"
           - "APISIX enabled: {{ apisix_enabled | default(false) }}"
       tags: [always]
 

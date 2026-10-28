@@ -10,7 +10,7 @@ cadvisor_name: "cadvisor"
 grafana_name: "grafana"
 
 # Docker images (pinned; used by tasks/monitoring.yml)
-# cadvisor_image is set in defaults/main.yml.
+# cadvisor_image is set in defaults.yml.
 prometheus_image: "prom/prometheus:v3.15.1"
 alertmanager_image: "prom/alertmanager:v0.34.1"
 loki_image: "grafana/loki:2.9.0"
@@ -24,7 +24,7 @@ prometheus_port: 9090
 alertmanager_port: 9093
 loki_port: 3100
 node_exporter_port: 9100
-cadvisor_port: 8080
+# cadvisor_port is set in defaults.yml.
 grafana_port: 3000
 
 # Telegram notifications (optional)
@@ -33,7 +33,7 @@ telegram_enabled: false
 # telegram_chat_id: "YOUR_CHAT_ID"
 
 # Feature flags
-# cadvisor_enabled is defined in defaults/main.yml and can be overridden in host_vars
+# cadvisor_enabled is defined in defaults.yml and can be overridden in host_vars
 
 # Security
 grafana_admin_password: "{{ GRAFANA_ADMIN_PASSWORD | default('admin') }}" 
