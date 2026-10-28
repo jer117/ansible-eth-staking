@@ -1,0 +1,110 @@
+---
+# APISIX runs in file-driven standalone mode (see templates/apisix-config.yaml.j2), so it
+# needs no etcd and exposes no Admin API. Authentication is APISIX's built-in key-auth.
+
+- name: Resolve APISIX client credentials
+  vars:
+    _apisix_credentials_dir: >-
+      {{ apisix_credentials_dir | default((inventory_dir | default(playbook_dir, true))
+         ~ '/credentials/' ~ inventory_hostname ~ '/apisix') }}
+  ansible.builtin.set_fact:
+    # Use apisix_api_key / apisix_bearer_token from host_vars or secrets when set. Otherwise
+    # Ansible's password lookup generates a random value once and stores it on the control
+    # machine under credentials/<host>/apisix/ (gitignored), reusing it on later runs.
+    apisix_api_key_resolved: >-
+      {{ apisix_api_key if apisix_api_key is defined else
+         lookup('ansible.builtin.password', _apisix_credentials_dir ~ '/api_key',
+                length=48, chars=['ascii_letters', 'digits']) }}
+    apisix_bearer_token_resolved: >-
+      {{ apisix_bearer_token if apisix_bearer_token is defined else
+         lookup('ansible.builtin.password', _apisix_credentials_dir ~ '/bearer_token',
+                length=48, chars=['ascii_letters', 'digits']) }}
+  no_log: true
+
+- name: Reject placeholder APISIX credentials
+  ansible.builtin.assert:
+    that:
+      - apisix_api_key_resolved | length >= 16
+      - apisix_bearer_token_resolved | length >= 16
+      - apisix_api_key_resolved is not search('changeme|change-this')
+      - apisix_bearer_token_resolved is not search('changeme|change-this')
+    fail_msg: >-
+      apisix_api_key and apisix_bearer_token must be real secrets (16+ characters, not the
+      example placeholders). Delete them from your vars to have Ansible generate random ones.
+    quiet: true
+
+- name: Create directory structure for APISIX
+  become_user: root
+  become: true
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "root"
+    group: "root"
+    mode: "0755"
+  with_items:
+    - "{{ apisix_config_dir }}"
+    - "{{ apisix_config_dir }}/apisix"
+
+- name: Copy APISIX config.yaml
+  become_user: root
+  become: true
+  ansible.builtin.template:
+    # Relative to this file so it also resolves when imported from playbooks/apisix-only.yml.
+    src: ../templates/apisix-config.yaml.j2  # noqa: no-relative-paths
+    dest: "{{ apisix_config_dir }}/apisix/config.yaml"
+    mode: "0644"
+  notify: Restart APISIX
+
+# This file holds the client credentials. The APISIX image runs as uid/gid 636 (apisix),
+# so the file is readable by that group only.
+- name: Copy APISIX routes configuration
+  become_user: root
+  become: true
+  ansible.builtin.template:
+    src: ../templates/apisix-routes.yaml.j2  # noqa: no-relative-paths
+    dest: "{{ apisix_config_dir }}/apisix/apisix.yaml"
+    owner: "root"
+    group: "636"
+    mode: "0640"
+  no_log: true
+  notify: Restart APISIX
+
+- name: Remove the etcd container used by earlier versions of this role
+  become_user: root
+  become: true
+  community.docker.docker_container:
+    name: "{{ apisix_etcd_container_name }}"
+    state: absent
+
+- name: Pull APISIX Docker image
+  become_user: root
+  become: true
+  community.docker.docker_image:
+    name: "{{ apisix_image }}"
+    source: pull
+
+- name: Start APISIX container
+  become_user: root
+  become: true
+  community.docker.docker_container:
+    name: "{{ apisix_container_name }}"
+    image: "{{ apisix_image }}"
+    state: started
+    restart_policy: unless-stopped
+    timeout: 300
+    networks:
+      - name: "eth-staking-network-net"
+    volumes:
+      - "{{ apisix_config_dir }}/apisix/config.yaml:/usr/local/apisix/conf/config.yaml:ro"
+      - "{{ apisix_config_dir }}/apisix/apisix.yaml:/usr/local/apisix/conf/apisix.yaml:ro"
+    ports:
+      - "{{ apisix_gateway_port }}:9080"
+      - "{{ apisix_https_port }}:9443"
+
+- name: Wait for APISIX to be ready
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: "{{ apisix_gateway_port }}"
+    delay: 10
+    timeout: 60

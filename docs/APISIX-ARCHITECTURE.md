@@ -6,47 +6,50 @@
 ┌─────────────────────────────────────────────────────────────────────┐
 │                          External Clients                           │
 │                                                                     │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐            │
-│  │  Web3 Wallet │  │  RPC Client  │  │  Monitoring  │            │
-│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘            │
-│         │                 │                 │                      │
-└─────────┼─────────────────┼─────────────────┼──────────────────────┘
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐               │
+│  │  Web3 Wallet │  │  RPC Client  │  │  Monitoring  │               │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘               │
+│         │                 │                 │                       │
+└─────────┼─────────────────┼─────────────────┼───────────────────────┘
           │                 │                 │
           │   API Key or Bearer Token         │
           │                 │                 │
           ▼                 ▼                 ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │                         APISIX API Gateway                          │
-│                         (Port 9080/9443)                            │
+│                  (Port 9080/9443, standalone mode)                  │
 │                                                                     │
-│  ┌───────────────────────────────────────────────────────────────┐ │
-│  │                    Route Configuration                        │ │
-│  │                                                               │ │
-│  │  /execution/*  → Nethermind (8544)                           │ │
-│  │  /consensus/*  → Lighthouse (5062)                           │ │
-│  │  /health       → Health Check (no auth)                      │ │
-│  │  /auth/validate → Auth Service                               │ │
-│  └───────────────────────────────────────────────────────────────┘ │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │                      Route Configuration                      │  │
+│  │                                                               │  │
+│  │  /execution/*      → Nethermind (8544)       auth             │  │
+│  │  /consensus/*      → Lighthouse (5062)       auth             │  │
+│  │  /health           → Lighthouse health       no auth          │  │
+│  │  /execution-health → Nethermind health       no auth          │  │
+│  └───────────────────────────────────────────────────────────────┘  │
 │                                                                     │
-│  ┌───────────────────────────────────────────────────────────────┐ │
-│  │                    Forward Auth Plugin                        │ │
-│  │                                                               │ │
-│  │  1. Extract API Key or Bearer Token                          │ │
-│  │  2. Forward to Auth Service                                  │ │
-│  │  3. Validate response (200 = OK, 401 = Denied)              │ │
-│  │  4. Add user headers to upstream request                     │ │
-│  └───────────────────────────────────────────────────────────────┘ │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │            Authentication (multi-auth + key-auth)             │  │
+│  │                                                               │  │
+│  │  1. Read the X-API-Key or Authorization header                │  │
+│  │  2. Match it exactly against the consumers in apisix.yaml     │  │
+│  │  3. No match → 401 Unauthorized, request not forwarded        │  │
+│  │  4. Remove the credential, add X-Consumer-Username            │  │
+│  └───────────────────────────────────────────────────────────────┘  │
 │                                                                     │
-│  ┌───────────────────────────────────────────────────────────────┐ │
-│  │                      Other Plugins                            │ │
-│  │                                                               │ │
-│  │  • proxy-rewrite: Strip /execution, /consensus prefixes      │ │
-│  │  • prometheus: Export metrics on port 9091                   │ │
-│  │  • serverless: Inline Lua functions for auth logic           │ │
-│  └───────────────────────────────────────────────────────────────┘ │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │                         Other Plugins                         │  │
+│  │                                                               │  │
+│  │  • proxy-rewrite: Strip /execution, /consensus prefixes;      │  │
+│  │    set Content-Type on /execution-health                      │  │
+│  │  • prometheus: Export metrics on port 9091 (Docker network)   │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│                                                                     │
+│  Config: conf/config.yaml + conf/apisix.yaml, rendered by Ansible   │
+│  and mounted read-only (no etcd, no Admin API)                      │
 └─────────────────────────────────────────────────────────────────────┘
                               │
-                              │  Validated Request
+                              │  Authenticated request (credential removed)
                               │
           ┌───────────────────┴───────────────────┐
           │                                       │
@@ -65,101 +68,81 @@
           ▼                                       ▼
 ┌──────────────────────────────────────────────────────────┐
 │                    Ethereum Network                      │
-│                  (Mainnet/Holesky/Sepolia)              │
+│                 (Mainnet/Holesky/Sepolia)                │
 └──────────────────────────────────────────────────────────┘
 ```
 
 ## Authentication Flow
 
 ```
-┌──────────┐                 ┌──────────┐                 ┌──────────┐
-│  Client  │                 │  APISIX  │                 │   Auth   │
-│          │                 │ Gateway  │                 │ Service  │
-└────┬─────┘                 └────┬─────┘                 └────┬─────┘
-     │                            │                            │
-     │  GET /consensus/version    │                            │
-     │  X-API-Key: abc123         │                            │
-     ├───────────────────────────►│                            │
-     │                            │                            │
-     │                            │  GET /auth/validate        │
-     │                            │  X-API-Key: abc123         │
-     │                            ├───────────────────────────►│
-     │                            │                            │
-     │                            │                            │ Validate
-     │                            │                            │ API Key
-     │                            │                            │
-     │                            │  200 OK                    │
-     │                            │  X-User-ID: api-user       │
-     │                            │◄───────────────────────────┤
-     │                            │                            │
-     │                            │                            │
-     │      Forward to Upstream   │                            │
-     │                            │                            │
-     │              ┌─────────────┴─────────────┐              │
-     │              │                           │              │
-     │              ▼                           ▼              │
-     │    ┌──────────────┐            ┌──────────────┐        │
-     │    │ Lighthouse   │            │ Nethermind   │        │
-     │    │    :5062     │            │    :8544     │        │
-     │    └──────┬───────┘            └──────┬───────┘        │
-     │           │                           │                │
-     │           │  200 OK + Data            │                │
-     │           │◄──────────┘               │                │
-     │                                       │                │
-     │  200 OK + Data                        │                │
-     │◄──────────────────────────────────────┘                │
-     │                                                         │
+┌──────────┐                      ┌────────────────┐             ┌──────────────┐
+│  Client  │                      │ APISIX Gateway │             │  Lighthouse  │
+│          │                      │   (key-auth)   │             │    :5062     │
+└────┬─────┘                      └───────┬────────┘             └──────┬───────┘
+     │                                    │                             │
+     │ GET /consensus/eth/v1/node/version │                             │
+     │ X-API-Key: abc123                  │                             │
+     ├───────────────────────────────────►│                             │
+     │                                    │                             │
+     │                                    │ key-auth: key matches       │
+     │                                    │ consumer api_key_client     │
+     │                                    │ remove X-API-Key,           │
+     │                                    │ add X-Consumer-Username,    │
+     │                                    │ strip /consensus prefix     │
+     │                                    │                             │
+     │                                    │  GET /eth/v1/node/version   │
+     │                                    ├────────────────────────────►│
+     │                                    │                             │
+     │                                    │  200 OK + Data              │
+     │                                    │◄────────────────────────────┤
+     │                                    │                             │
+     │ 200 OK + Data                      │                             │
+     │◄───────────────────────────────────┤                             │
+     │                                    │                             │
 ```
+
+With `Authorization: Bearer <token>` the flow is the same; the key matched is the whole header value (`Bearer <token>`) and the consumer is `bearer_token_client`.
 
 ### Failed Authentication Flow
 
 ```
-┌──────────┐                 ┌──────────┐                 ┌──────────┐
-│  Client  │                 │  APISIX  │                 │   Auth   │
-│          │                 │ Gateway  │                 │ Service  │
-└────┬─────┘                 └────┬─────┘                 └────┬─────┘
-     │                            │                            │
-     │  GET /consensus/version    │                            │
-     │  (no auth header)          │                            │
-     ├───────────────────────────►│                            │
-     │                            │                            │
-     │                            │  GET /auth/validate        │
-     │                            │  (no auth header)          │
-     │                            ├───────────────────────────►│
-     │                            │                            │
-     │                            │                            │ Validate
-     │                            │                            │ (Failed)
-     │                            │                            │
-     │                            │  401 Unauthorized          │
-     │                            │  WWW-Authenticate: Bearer  │
-     │                            │◄───────────────────────────┤
-     │                            │                            │
-     │  401 Unauthorized          │                            │
-     │  WWW-Authenticate: Bearer  │                            │
-     │◄───────────────────────────┤                            │
-     │                            │                            │
+┌──────────┐                      ┌────────────────┐
+│  Client  │                      │ APISIX Gateway │
+│          │                      │   (key-auth)   │
+└────┬─────┘                      └───────┬────────┘
+     │                                    │
+     │ GET /consensus/eth/v1/node/version │
+     │ (no or wrong credentials)          │
+     ├───────────────────────────────────►│
+     │                                    │
+     │                                    │ no matching consumer:
+     │                                    │ request is not forwarded
+     │                                    │
+     │ 401 Unauthorized                   │
+     │◄───────────────────────────────────┤
+     │                                    │
 ```
 
 ## Component Details
 
 ### APISIX Gateway
-- **Image**: apache/apisix:3.14.1-debian
+- **Image**: apache/apisix:3.19.0-debian
+- **Mode**: file-driven standalone (`deployment.role: data_plane`, `config_provider: yaml`)
 - **Ports**:
-  - 9080: HTTP Gateway
-  - 9443: HTTPS Gateway
-  - 9180: Admin API
-  - 9091: Prometheus Metrics
+  - 9080: HTTP Gateway (published)
+  - 9443: HTTPS Gateway (published)
+  - 9091: Prometheus Metrics (Docker network only, not published)
+- **Configuration**: `config.yaml` and `apisix.yaml` in `/root/.eth-staking/config/apisix/apisix/`, rendered by Ansible and mounted read-only. There is no etcd and no Admin API; changes are made by editing vars/templates and re-running Ansible.
 - **Purpose**: Route requests, enforce authentication, collect metrics
 
-### etcd
-- **Image**: bitnami/etcd:3.5.11
-- **Port**: 2379
-- **Purpose**: Store APISIX configuration and routing rules
-
-### Auth Service
-- **Implementation**: APISIX serverless-pre-function plugin
-- **Location**: Inline Lua function in route configuration
-- **Purpose**: Validate API keys and bearer tokens
+### Authentication (key-auth)
+- **Implementation**: APISIX's built-in `key-auth` plugin, wrapped in `multi-auth` so that either of two headers is accepted
+- **Attached to**: `/execution/*` and `/consensus/*`, through the shared plugin config `client-auth`
+- **Consumers** (defined in `apisix.yaml`):
+  - `api_key_client`: key = `apisix_api_key`, sent as `X-API-Key: <key>`
+  - `bearer_token_client`: key = `Bearer ` + `apisix_bearer_token`, sent as `Authorization: Bearer <token>`
+- **Credentials**: from host_vars/secrets, or generated by Ansible into `credentials/<inventory_hostname>/apisix/` on the control machine. The rendered `apisix.yaml` is owned by root, group 636 (the container's `apisix` user), mode 0640.
+- **Behaviour**: unauthenticated requests get 401; with `hide_credentials: true` the credential is removed before proxying; the upstream receives `X-Consumer-Username`. `key-auth` also accepts the API key in an `apikey` query parameter, but headers are preferred because URLs get logged.
 
 ### Upstream Services
 
@@ -177,9 +160,9 @@
 
 1. **Client Request**: Client sends request with authentication header
 2. **Route Matching**: APISIX matches request to configured route
-3. **Forward Auth**: APISIX calls auth service with credentials
-4. **Validation**: Auth service validates API key/bearer token
-5. **Header Injection**: Auth service adds user headers (e.g., X-User-ID)
+3. **Authentication**: `multi-auth` runs `key-auth` on the `X-API-Key` header, then on the `Authorization` header; the value must exactly match a consumer's key
+4. **Rejection**: If no consumer matches, APISIX returns 401 and the request goes no further
+5. **Header Changes**: The credential header is removed and `X-Consumer-Username` is added
 6. **Proxy Rewrite**: APISIX strips route prefix (/execution or /consensus)
 7. **Upstream Forward**: Request sent to Nethermind or Lighthouse
 8. **Response**: Upstream response returned to client
@@ -195,10 +178,10 @@
 └────────────────────────────────────────┘
                   │
 ┌────────────────────────────────────────┐
-│  Layer 2: APISIX Forward Auth          │
+│  Layer 2: APISIX key-auth              │
 │  • API Key validation                  │
 │  • Bearer token validation             │
-│  • Reject unauthorized requests        │
+│  • Reject unauthorized requests (401)  │
 └────────────────────────────────────────┘
                   │
 ┌────────────────────────────────────────┐
@@ -228,8 +211,8 @@ curl -H "X-API-Key: abc123" \
 
 # APISIX processes:
 1. Receives request to /execution/
-2. Calls auth service with X-API-Key: abc123
-3. Auth returns 200 OK
+2. key-auth matches X-API-Key: abc123 to consumer api_key_client
+3. Removes X-API-Key, adds X-Consumer-Username: api_key_client
 4. Rewrites path from /execution/ to /
 5. Forwards to eth-ansible-execution-1:8544/
 6. Nethermind returns: {"jsonrpc":"2.0","result":"0x123456","id":1}
@@ -245,8 +228,8 @@ curl -H "Authorization: Bearer xyz789" \
 
 # APISIX processes:
 1. Receives request to /consensus/eth/v1/node/version
-2. Calls auth service with Authorization: Bearer xyz789
-3. Auth returns 200 OK
+2. key-auth matches "Bearer xyz789" to consumer bearer_token_client
+3. Removes Authorization, adds X-Consumer-Username: bearer_token_client
 4. Rewrites path from /consensus/... to /eth/v1/node/version
 5. Forwards to eth-ansible-consensus-1:5062/eth/v1/node/version
 6. Lighthouse returns version info
@@ -257,7 +240,7 @@ curl -H "Authorization: Bearer xyz789" \
 
 ### Prometheus Metrics
 
-Available at: `http://server:9091/apisix/prometheus/metrics`
+Available at `http://eth-ansible-apisix:9091/apisix/prometheus/metrics` from containers on `eth-staking-network-net` (for example the Prometheus container); port 9091 is not published on the host.
 
 Key metrics:
 - `apisix_http_requests_total`: Total HTTP requests
@@ -272,25 +255,26 @@ Key metrics:
 # APISIX logs
 docker logs -f eth-ansible-apisix
 
-# etcd logs
-docker logs -f eth-ansible-apisix-etcd
+# Errors loading apisix.yaml (every route returns 404 when it is not loaded)
+docker logs eth-ansible-apisix 2>&1 | grep config_yaml
 ```
 
 ## High Availability Considerations
 
 For production deployments, consider:
 
-1. **Multiple APISIX Instances**: Run behind a load balancer
-2. **etcd Cluster**: Use 3-node etcd cluster for redundancy
-3. **Rate Limiting**: Add rate limiting plugin to prevent abuse
-4. **Circuit Breaker**: Add circuit breaker for upstream failures
-5. **SSL/TLS**: Enable HTTPS with proper certificates
-6. **IP Whitelisting**: Restrict access to known IPs
+1. **Multiple APISIX Instances**: Run behind a load balancer. In standalone mode each instance reads its own `apisix.yaml`, so Ansible keeps them in sync; no etcd cluster is needed
+2. **Rate Limiting**: Add rate limiting plugin to prevent abuse
+3. **Circuit Breaker**: Add circuit breaker for upstream failures
+4. **SSL/TLS**: Enable HTTPS with proper certificates
+5. **IP Whitelisting**: Restrict access to known IPs
 
 ## References
 
 - [APISIX Documentation](https://apisix.apache.org/docs/apisix/)
-- [Forward-Auth Plugin](https://apisix.apache.org/docs/apisix/plugins/forward-auth/)
+- [Standalone Mode](https://apisix.apache.org/docs/apisix/deployment-modes/#standalone)
+- [Key-Auth Plugin](https://apisix.apache.org/docs/apisix/plugins/key-auth/)
+- [Multi-Auth Plugin](https://apisix.apache.org/docs/apisix/plugins/multi-auth/)
 - [Prometheus Plugin](https://apisix.apache.org/docs/apisix/plugins/prometheus/)
 - [Proxy-Rewrite Plugin](https://apisix.apache.org/docs/apisix/plugins/proxy-rewrite/)
 

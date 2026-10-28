@@ -9,7 +9,7 @@ Ansible role for eth home stakers.
 - **Web UI**: Semaphore UI for easy Ansible playbook execution
 - **Monitoring**: Grafana, Prometheus, Node Exporter, and cAdvisor
 - **Security**: Firewall, JWT secrets, secure defaults
-- **API Gateway**: Apache APISIX with forward authentication for RPC endpoints
+- **API Gateway**: Apache APISIX with API key / bearer token authentication for RPC endpoints
 - **Automation**: Backups, health checks, resource management, automatic resets
 - **Resource-efficient**: Configurable memory allocation
 
@@ -24,7 +24,7 @@ Ansible role for eth home stakers.
 
 These are the peer-to-peer ports. Allow them on the host firewall, and forward them on your router if the node is behind NAT. Without the UDP ports, the clients can't be discovered by other peers and end up with fewer peers.
 
-| Port  | Protocol | Client                        | Purpose                          | Variable in `vars/main.yml`        |
+| Port  | Protocol | Client                        | Purpose                          | Variable in `roles/ethereum_home_staking/vars/main.yml` |
 |-------|----------|-------------------------------|----------------------------------|------------------------------------|
 | 30304 | TCP      | Nethermind                    | Peer connections (devp2p)        | `eth_ansible_execution_1_p2p_port` |
 | 30304 | UDP      | Nethermind                    | Peer discovery (discv4/discv5)   | `eth_ansible_execution_1_p2p_port` |
@@ -33,12 +33,12 @@ These are the peer-to-peer ports. Allow them on the host firewall, and forward t
 | 9001  | UDP      | Lighthouse (and Teku 26.7+)   | Peer connections over QUIC       | `consensus_client_quic_port`       |
 | 3610  | TCP      | Charon (if `charon_enabled`)  | Connections to other cluster nodes | `charon_p2p_tcp_port`            |
 
-These were checked against the versions pinned in `defaults/main.yml` (Nethermind 1.35.3, Lighthouse v8.0.1, Teku 25.11, Charon v1.7.1):
+These were checked against Nethermind 1.35.3, Lighthouse v8.0.1, Teku 25.11 and Charon v1.7.1. The role now pins newer versions (see `roles/ethereum_home_staking/defaults/main.yml`):
 
-- Teku 25.11 does not use QUIC, so 9001/udp only matters for Lighthouse today. Teku 26.7 and later enable QUIC on UDP 9001 by default.
+- Teku 25.11 did not use QUIC. Teku 26.7 and later, which includes the pinned version, enable QUIC on UDP 9001 by default, so 9001/udp matters for both consensus clients.
 - Charon only needs TCP. Its QUIC transport is an alpha feature that is off by default, and it only listens on UDP if `--p2p-udp-address` is set.
 
-To change a port, edit `vars/main.yml` or pass it with `-e` (for example `-e consensus_client_p2p_port=9100`). Setting it in `host_vars` has no effect, because `main.yml` loads `vars/main.yml` with `include_vars`, which takes precedence over inventory variables.
+To change a port, edit `roles/ethereum_home_staking/vars/main.yml` or pass it with `-e` (for example `-e consensus_client_p2p_port=9100`). Setting it in `host_vars` has no effect: ports are fixed role vars, which take precedence over inventory variables (see [Configuration](#configuration)).
 
 ```bash
 # Reset UFW to default
@@ -92,14 +92,14 @@ Ports this role publishes on all interfaces:
 | 30304 tcp/udp, 9000 tcp/udp, 9001 udp, 3610 tcp | P2P (see above)                          | Yes |
 | 8544/tcp                                    | Nethermind JSON-RPC (`admin` and `debug` modules enabled) | No |
 | 8552/tcp                                    | Nethermind Engine API (JWT-protected; the beacon node reaches it over the Docker network) | No |
-| 9080, 9443, 9180/tcp                        | APISIX gateway, HTTPS, Admin API (if `apisix_enabled`) | Gateway and HTTPS only |
-| 3001, 9090, 9093, 24165/tcp                 | Grafana, Prometheus, Alertmanager, cAdvisor  | No |
+| 9080, 9443/tcp                              | APISIX gateway and HTTPS (if `apisix_enabled`) | Yes |
+| 3001, 9090, 9093, 8080/tcp                  | Grafana, Prometheus, Alertmanager, cAdvisor (`cadvisor_port`) | No |
 
-The beacon API (5062), validator API (5064) and metrics (8009), Charon monitoring (3620), node exporter (9100), Grafana Agent (12345) and APISIX etcd (2379) are bound to `127.0.0.1` and are not reachable from outside.
+The beacon API (5062), validator API (5064) and metrics (8009), Charon monitoring (3620), node exporter (9100) and Grafana Agent (12345) are bound to `127.0.0.1` and are not reachable from outside.
 
 To keep a published port private, either:
 
-1. Bind it to localhost by prefixing the mapping with `127.0.0.1:` in `vars/main.yml`, as the beacon API mapping already does. Anything that reaches the service over the Docker network (APISIX, Prometheus, the beacon node) keeps working.
+1. Bind it to localhost by prefixing the mapping with `127.0.0.1:` in `roles/ethereum_home_staking/vars/main.yml`, as the beacon API mapping already does. Anything that reaches the service over the Docker network (APISIX, Prometheus, the beacon node) keeps working.
 2. Or drop outside traffic in the `DOCKER-USER` chain, which Docker evaluates before its own rules. Match on the original destination port, because Docker has already rewritten the destination by the time the packet reaches this chain:
 
    ```bash
@@ -130,12 +130,12 @@ python3 setup.py
 #
 # Features:
 # - Interactive MEV-Boost relay selection for each network
-# - Support for multiple networks (mainnet, holesky, sepolia, hoodi)
+# - Support for multiple networks (mainnet, sepolia, hoodi)
 # - Pre-configured checkpoint sync URLs
 # - Automated configuration generation
 #
 # The script will create:
-# - secrets.yml with your configuration
+# - host_vars/<server-name>.yml with your configuration (readable only by you)
 # - inventory file with your server information
 
 # Follow the next steps provided by the setup script
@@ -144,6 +144,21 @@ python3 setup.py
 # Run the playbook
 ansible-playbook -i inventory main.yml
 ```
+
+## Configuration
+
+`main.yml` and the playbooks in `playbooks/` apply the role in `roles/ethereum_home_staking/`. Its variables come in two layers:
+
+| File | Contents | Override from host_vars / group_vars? |
+|------|----------|---------------------------------------|
+| `roles/ethereum_home_staking/defaults/main.yml` | Images, feature toggles (`mev_boost_enabled`, `charon_enabled`, `apisix_enabled`, ...), paths, tuning | Yes |
+| `roles/ethereum_home_staking/vars/main.yml` | Container names and ports: the ones the containers use to reach each other, and the published P2P/RPC port mappings | No (only with `-e`) |
+
+Put your settings in `host_vars/<host>.yml` or `group_vars/<group>.yml` next to your inventory instead of editing the role. Ansible only loads `host_vars/<host>.yml` when `<host>` is the host's name in the inventory; `setup.py` uses the server name for both. If an older `setup.py` named your file after the server IP, rename it to the inventory name. Keep secrets in that same host_vars file and encrypt it with `ansible-vault` if you like. Don't pass per-host settings with `-e @secrets.yml`: extra vars apply to every host in the run and override everything, including host_vars and the fixed values.
+
+The `*_enabled` toggles accept `"true"`/`"false"` or YAML booleans.
+
+`tests/precedence/run.sh` checks that host_vars and group_vars override the role defaults.
 
 # How to generate validator keys.
 - https://hoodi.launchpad.ethereum.org/en/generate-keys
@@ -219,20 +234,17 @@ validator_client: "lodestar"  # Options: "lighthouse" or "lodestar"
 
 ## APISIX API Gateway (Optional)
 
-Apache APISIX provides secure, authenticated access to your Ethereum node's RPC endpoints with forward authentication.
+Apache APISIX provides secure, authenticated access to your Ethereum node's RPC endpoints using APISIX's built-in `key-auth` plugin. It runs in file-driven standalone mode: routes and credentials come from a file rendered by Ansible, with no etcd and no Admin API.
 
 ### Quick Setup
 
-1. **Enable APISIX** in your configuration:
+1. **Credentials** (optional): APISIX is enabled by default (`apisix_enabled: true` in `roles/ethereum_home_staking/defaults/main.yml`). Set your own client credentials, or leave them unset and Ansible generates random ones:
 ```yaml
-# In host_vars/<your-host>.yml or vars/main.yml
-apisix_enabled: true
-
-# In secrets.yml - generate secure keys
-apisix_api_key: "your-secure-api-key"
-apisix_bearer_token: "your-secure-bearer-token"
-apisix_admin_key: "your-secure-admin-key"
+# In secrets.yml or host_vars/<your-host>.yml - generate with: openssl rand -hex 32
+apisix_api_key: "<random value>"
+apisix_bearer_token: "<random value>"
 ```
+Generated credentials are stored on the control machine in `credentials/<inventory_hostname>/apisix/api_key` and `.../bearer_token` (next to your inventory file, gitignored).
 
 2. **Deploy APISIX**:
 ```bash
@@ -256,11 +268,11 @@ curl -H "X-API-Key: your-api-key" \
 ```
 
 ### Features
-- ✅ **Forward Authentication**: API Key and Bearer Token support
+- ✅ **Authentication**: API Key (`X-API-Key`) and Bearer Token (`Authorization: Bearer`) support
 - ✅ **Route Protection**: Secure consensus and execution endpoints
-- ✅ **Prometheus Metrics**: Built-in metrics export on port 9091
+- ✅ **Prometheus Metrics**: Built-in metrics export on port 9091 (Docker network only)
 - ✅ **Health Checks**: Unauthenticated health endpoints
-- ✅ **Admin API**: Manage routes dynamically on port 9180
+- ✅ **Config as Code**: Routes and credentials are managed by Ansible; re-run the playbook to change them
 
 ### Documentation
 - **Quick Start**: [QUICKSTART-APISIX.md](QUICKSTART-APISIX.md)

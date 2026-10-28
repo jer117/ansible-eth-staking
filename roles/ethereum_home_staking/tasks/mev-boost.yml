@@ -2,7 +2,7 @@
 - name: Start mev boost
   become: true
   become_user: "root"
-  community.general.docker_container:
+  community.docker.docker_container:
     name: "{{ mev_boost_container_name }}"
     image: "{{ mev_boost_docker_image }}"
     user: 7010:7010
