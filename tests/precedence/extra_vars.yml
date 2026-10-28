@@ -1,0 +1,5 @@
+---
+# Passed with -e: extra vars beat everything, including fixed role vars.
+precedence_extra_vars: true
+validator_graffiti: "extra-graffiti"
+eth_ansible_execution_1_rpc_port: 7777

@@ -7,12 +7,12 @@ An Ansible role for deploying Apache APISIX as an API Gateway with API key / bea
 ### Files Created
 
 #### Ansible Tasks & Templates
-- **`tasks/apisix.yml`**: Main Ansible task file: resolves the client credentials and deploys the APISIX container
-- **`templates/apisix-config.yaml.j2`**: APISIX main configuration template (standalone mode)
-- **`templates/apisix-routes.yaml.j2`**: APISIX routes, consumers and key-auth configuration
+- **`roles/ethereum_home_staking/tasks/apisix.yml`**: Main Ansible task file: resolves the client credentials and deploys the APISIX container
+- **`roles/ethereum_home_staking/templates/apisix-config.yaml.j2`**: APISIX main configuration template (standalone mode)
+- **`roles/ethereum_home_staking/templates/apisix-routes.yaml.j2`**: APISIX routes, consumers and key-auth configuration
 
 #### Configuration Files
-- **`defaults/main.yml`**: Updated with APISIX variables and defaults
+- **`roles/ethereum_home_staking/defaults/main.yml`**: Updated with APISIX variables and defaults
 - **`main.yml`**: Updated to include APISIX deployment task
 - **`example.apisix-secrets.yml`**: Example credentials file
 - **`example.env.apisix`**: Environment variables example
@@ -94,7 +94,7 @@ apisix_bearer_token: "<random value>"
 
 If these are not set, the playbook generates random 48-character values and stores them on the control machine in `credentials/<inventory_hostname>/apisix/api_key` and `.../bearer_token` (next to your inventory file, gitignored, mode 0600). Later runs reuse them. The playbook stops if a credential is shorter than 16 characters or contains the `changeme` / `change-this` example placeholders.
 
-### Optional Variables (defaults/main.yml)
+### Optional Variables (roles/ethereum_home_staking/defaults/main.yml)
 
 ```yaml
 # Enable APISIX
@@ -280,7 +280,7 @@ docker run --rm --network eth-staking-network-net curlimages/curl \
 
 ### Grafana Integration
 
-The Prometheus container is on the same Docker network, so add a scrape job to `templates/prometheus.yml`; the metrics then show up in Grafana through the existing Prometheus datasource:
+The Prometheus container is on the same Docker network, so add a scrape job to `roles/ethereum_home_staking/templates/prometheus.yml`; the metrics then show up in Grafana through the existing Prometheus datasource:
 
 ```yaml
   - job_name: 'apisix'
@@ -354,12 +354,12 @@ sudo cat /root/.eth-staking/config/apisix/apisix/apisix.yaml
 APISIX already listens for HTTPS on port 9443 (published); it needs a certificate:
 
 1. Generate SSL certificates
-2. Add them as an `ssls` entry (certificate, key and SNIs) in `templates/apisix-routes.yaml.j2`
+2. Add them as an `ssls` entry (certificate, key and SNIs) in `roles/ethereum_home_staking/templates/apisix-routes.yaml.j2`
 3. Re-run the playbook
 
 ### Add Rate Limiting
 
-Update `templates/apisix-routes.yaml.j2`:
+Update `roles/ethereum_home_staking/templates/apisix-routes.yaml.j2`:
 
 ```yaml
 plugins:

@@ -19,8 +19,8 @@ Client Request → APISIX Gateway (key-auth) → Upstream (Nethermind/Lighthouse
 
 APISIX runs in file-driven standalone mode (`deployment.role: data_plane`, `config_provider: yaml`). Ansible renders two files into `{{ apisix_config_dir }}/apisix/` on the server (by default `/root/.eth-staking/config/apisix/apisix/`) and mounts them read-only into the container:
 
-- `config.yaml`, from `templates/apisix-config.yaml.j2`: node settings
-- `apisix.yaml`, from `templates/apisix-routes.yaml.j2`: routes, consumers (client credentials) and plugins
+- `config.yaml`, from `roles/ethereum_home_staking/templates/apisix-config.yaml.j2`: node settings
+- `apisix.yaml`, from `roles/ethereum_home_staking/templates/apisix-routes.yaml.j2`: routes, consumers (client credentials) and plugins
 
 There is no etcd and no Admin API. To change routes, credentials or plugins, edit the variables or templates and re-run the playbook; APISIX is restarted when either file changes.
 
@@ -59,7 +59,7 @@ There is no etcd and no Admin API. To change routes, credentials or plugins, edi
 
 ## Configuration
 
-### Variables (defaults/main.yml)
+### Variables (roles/ethereum_home_staking/defaults/main.yml)
 
 ```yaml
 # Enable/Disable APISIX
@@ -67,9 +67,6 @@ apisix_enabled: true
 
 # Docker Image
 apisix_image: "apache/apisix:3.19.0-debian"
-
-# Container Name
-apisix_container_name: "eth-ansible-apisix"
 
 # Config directory on the server
 apisix_config_dir: "/root/.eth-staking/config/apisix"
@@ -81,9 +78,9 @@ apisix_https_port: 9443         # HTTPS port
 
 Prometheus metrics are served on port 9091 inside the Docker network only (see [Monitoring](#monitoring)).
 
-`main.yml` loads `defaults/main.yml` with `include_vars`, which takes precedence over host_vars. To change one of the values above, edit `defaults/main.yml` or `vars/main.yml`, or pass it with `-e`.
+Override any of these in host_vars or group_vars. The container name (`apisix_container_name: "eth-ansible-apisix"`) is fixed in `roles/ethereum_home_staking/vars/main.yml`; change it only with `-e`.
 
-These optional variables are not defined in `defaults/main.yml`, so you can set them in host_vars or `secrets.yml`:
+These optional variables have no default; set them in host_vars or `secrets.yml`:
 
 ```yaml
 apisix_api_key: "..."          # Client API key (generated if unset, see below)
@@ -150,7 +147,7 @@ The header value must match exactly, including the `Bearer ` prefix.
 
 ### Enable APISIX:
 
-APISIX is enabled by default (`apisix_enabled: true` in `defaults/main.yml`).
+APISIX is enabled by default (`apisix_enabled: true` in `roles/ethereum_home_staking/defaults/main.yml`).
 
 ### Run the playbook:
 
@@ -183,7 +180,7 @@ curl -H "X-API-Key: your-api-key" http://<server>:9080/consensus/eth/v1/node/ver
 
 ## Changing the Configuration
 
-There is no Admin API in this setup (port 9180 is not published). Edit `templates/apisix-routes.yaml.j2` (routes, consumers, plugins) or `templates/apisix-config.yaml.j2`, then re-run:
+There is no Admin API in this setup (port 9180 is not published). Edit `roles/ethereum_home_staking/templates/apisix-routes.yaml.j2` (routes, consumers, plugins) or `roles/ethereum_home_staking/templates/apisix-config.yaml.j2`, then re-run:
 
 ```bash
 ansible-playbook -i inventory main.yml --tags apisix
@@ -202,14 +199,14 @@ Earlier versions of this role ran APISIX with etcd and an Admin API on port 9180
 - The `eth-ansible-apisix-etcd` container is removed.
 - Port 9180 is no longer published. If you opened it in your firewall, you can close it.
 - `apisix_admin_key`, `apisix_admin_port`, `apisix_enable_auth_service`, `apisix_auth_service_host`, `apisix_auth_service_port` and `apisix_allow_degradation` are no longer used; delete them from your vars.
-- Anything you added through the Admin API was stored in etcd and is not carried over. Add it to `templates/apisix-routes.yaml.j2` instead.
+- Anything you added through the Admin API was stored in etcd and is not carried over. Add it to `roles/ethereum_home_staking/templates/apisix-routes.yaml.j2` instead.
 - The old etcd data directory is not used any more and can be deleted manually: `sudo rm -rf /data/apisix`.
 
 If your vars still contain placeholder credentials (`changeme-...`, `...-change-this`), the playbook stops. Remove them to have Ansible generate new ones, or set real values.
 
 ## Monitoring
 
-APISIX exposes Prometheus metrics on port 9091 inside the Docker network; the port is not published on the host. The Prometheus container deployed by this role is on the same network (`eth-staking-network-net`), so you can scrape APISIX by adding a job to `templates/prometheus.yml`:
+APISIX exposes Prometheus metrics on port 9091 inside the Docker network; the port is not published on the host. The Prometheus container deployed by this role is on the same network (`eth-staking-network-net`), so you can scrape APISIX by adding a job to `roles/ethereum_home_staking/templates/prometheus.yml`:
 
 ```yaml
   - job_name: 'apisix'
@@ -275,13 +272,13 @@ curl -i -H "X-API-Key: your-api-key" http://<server>:9080/consensus/eth/v1/node/
 
 ### Custom Routes
 
-To add custom routes, modify `templates/apisix-routes.yaml.j2` and add new route definitions. Add `plugin_config_id: client-auth` to a route to require the same credentials as the client APIs. Keep the `#END` line at the end of the file: APISIX only loads the file when it ends with it.
+To add custom routes, modify `roles/ethereum_home_staking/templates/apisix-routes.yaml.j2` and add new route definitions. Add `plugin_config_id: client-auth` to a route to require the same credentials as the client APIs. Keep the `#END` line at the end of the file: APISIX only loads the file when it ends with it.
 
 ### SSL/TLS
 
 Port 9443 is published and APISIX listens for HTTPS on it, but no certificate is configured. To enable HTTPS:
 1. Generate SSL certificates
-2. Add them as an `ssls` entry (certificate, key and SNIs) in `templates/apisix-routes.yaml.j2`; with no Admin API, certificates are configured in that file like routes
+2. Add them as an `ssls` entry (certificate, key and SNIs) in `roles/ethereum_home_staking/templates/apisix-routes.yaml.j2`; with no Admin API, certificates are configured in that file like routes
 3. Re-run the playbook
 
 ### Rate Limiting

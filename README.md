@@ -90,6 +90,21 @@ python3 setup.py
 ansible-playbook -i inventory main.yml
 ```
 
+## Configuration
+
+`main.yml` and the playbooks in `playbooks/` apply the role in `roles/ethereum_home_staking/`. Its variables come in two layers:
+
+| File | Contents | Override from host_vars / group_vars? |
+|------|----------|---------------------------------------|
+| `roles/ethereum_home_staking/defaults/main.yml` | Images, feature toggles (`mev_boost_enabled`, `charon_enabled`, `apisix_enabled`, ...), paths, tuning | Yes |
+| `roles/ethereum_home_staking/vars/main.yml` | Container names and ports: the ones the containers use to reach each other, and the published P2P/RPC port mappings | No (only with `-e`) |
+
+Put your settings in `host_vars/<host>.yml` or `group_vars/<group>.yml` next to your inventory instead of editing the role. Ansible only loads `host_vars/<host>.yml` when `<host>` is the host's name in the inventory; `setup.py` uses the server name for both. If an older `setup.py` named your file after the server IP, rename it to the inventory name. Keep secrets in that same host_vars file and encrypt it with `ansible-vault` if you like. Don't pass per-host settings with `-e @secrets.yml`: extra vars apply to every host in the run and override everything, including host_vars and the fixed values.
+
+The `*_enabled` toggles accept `"true"`/`"false"` or YAML booleans.
+
+`tests/precedence/run.sh` checks that host_vars and group_vars override the role defaults.
+
 # How to generate validator keys.
 - https://hoodi.launchpad.ethereum.org/en/generate-keys
 - https://wagyu.gg/
@@ -168,7 +183,7 @@ Apache APISIX provides secure, authenticated access to your Ethereum node's RPC 
 
 ### Quick Setup
 
-1. **Credentials** (optional): APISIX is enabled by default (`apisix_enabled: true` in `defaults/main.yml`). Set your own client credentials, or leave them unset and Ansible generates random ones:
+1. **Credentials** (optional): APISIX is enabled by default (`apisix_enabled: true` in `roles/ethereum_home_staking/defaults/main.yml`). Set your own client credentials, or leave them unset and Ansible generates random ones:
 ```yaml
 # In secrets.yml or host_vars/<your-host>.yml - generate with: openssl rand -hex 32
 apisix_api_key: "<random value>"

@@ -1,13 +1,14 @@
 ---
+# Deploy only the monitoring stack.
+# Usage: ansible-playbook -i inventory playbooks/monitoring.yml
+#
+# Variables come from roles/ethereum_home_staking (found through playbooks/roles,
+# a symlink to ../roles). Override them in host_vars/ or group_vars/ as for main.yml.
 - name: Set up Ethereum monitoring stack
   hosts: ethereum_nodes
   become: true
-  vars_files:
-    - ../defaults/main.yml
-    - ../vars/monitoring.yml
-    - ../vars/main.yml
-    - ../secrets.yml
-  
   tasks:
     - name: Include monitoring tasks
-      include_tasks: ../tasks/monitoring.yml 
+      ansible.builtin.import_role:
+        name: ethereum_home_staking
+        tasks_from: monitoring

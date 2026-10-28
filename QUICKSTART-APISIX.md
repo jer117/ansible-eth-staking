@@ -18,7 +18,7 @@ Add the two lines to your `secrets.yml` or `host_vars/<your-host>.yml`. The play
 
 ## 2. Enable APISIX
 
-APISIX is enabled by default (`apisix_enabled: true` in `defaults/main.yml`).
+APISIX is enabled by default (`apisix_enabled: true` in `roles/ethereum_home_staking/defaults/main.yml`).
 
 ## 3. Deploy APISIX
 
@@ -114,7 +114,7 @@ ssh <your-server> 'docker run --rm --network eth-staking-network-net curlimages/
 
 ## 8. Changing the Configuration
 
-There is no Admin API. Routes, consumers and plugins are defined in `templates/apisix-routes.yaml.j2`; edit it (or your vars) and re-run step 3.
+There is no Admin API. Routes, consumers and plugins are defined in `roles/ethereum_home_staking/templates/apisix-routes.yaml.j2`; edit it (or your vars) and re-run step 3.
 
 ## 9. Troubleshooting
 
@@ -195,5 +195,5 @@ See `README-APISIX.md` for:
 
 - APISIX Documentation: https://apisix.apache.org/docs/apisix/
 - Key-Auth Plugin: https://apisix.apache.org/docs/apisix/plugins/key-auth/
-- Ansible Role: See `tasks/apisix.yml` and `templates/apisix-*.j2`
+- Ansible Role: See `roles/ethereum_home_staking/tasks/apisix.yml` and `roles/ethereum_home_staking/templates/apisix-*.j2`
 
