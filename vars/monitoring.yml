@@ -10,12 +10,12 @@ cadvisor_name: "cadvisor"
 grafana_name: "grafana"
 
 # Docker images
-prometheus_image: "prom/prometheus:latest"
-alertmanager_image: "prom/alertmanager:latest"
+prometheus_image: "prom/prometheus:v3.15.1"
+alertmanager_image: "prom/alertmanager:v0.34.1"
 loki_image: "grafana/loki:2.9.0"
-node_exporter_image: "prom/node-exporter:latest"
+node_exporter_image: "prom/node-exporter:v1.12.1"
 cadvisor_image: "gcr.io/cadvisor/cadvisor:v0.47.0"
-grafana_image: "grafana/grafana:10.0.0"
+grafana_image: "grafana/grafana:13.3.0"
 
 # Network ports
 prometheus_port: 9090
@@ -23,7 +23,9 @@ alertmanager_port: 9093
 loki_port: 3100
 node_exporter_port: 9100
 cadvisor_port: 8080
-grafana_port: 3000
+# Host port for the Grafana UI. Grafana listens on 3000 inside the container;
+# the host uses 3001 so it doesn't clash with Semaphore UI on 3000.
+grafana_port: 3001
 
 # Telegram notifications (optional)
 telegram_enabled: false

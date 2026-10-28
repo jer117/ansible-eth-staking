@@ -81,16 +81,6 @@ scrape_configs:
       instance: "{{ IP }}"
   {% endif %}
 
-  # Grafana agent metrics
-  {% if grafana_agent_http_port is defined %}
-  - job_name: 'grafana-agent'
-    static_configs:
-      - targets: ['grafana-agent:{{ grafana_agent_http_port }}']
-    metrics_path: '/metrics'
-    labels:
-      instance: "{{ IP }}"
-  {% endif %}
-  
   # External River nodes metrics - dynamically add all servers
   {% if groups['all'] is defined %}
   {% for host in groups['all'] %}

@@ -17,7 +17,8 @@ datasources:
     access: proxy
     orgId: 1
     uid: PBFA97CFB590B2093
-    url: http://{{ IP }}:9090
+    # Grafana and Prometheus share eth-staking-network-net, so use the container name
+    url: http://{{ prometheus_name }}:9090
     basicAuth: false
     isDefault: true
     version: 1

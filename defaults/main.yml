@@ -48,9 +48,6 @@ execution:
 # Monitoring Vars
 prometheus_name: "prometheus"
 
-grafana_agent_http_port: 12345
-grafana_agent_grpc_port: 9095
-
 node_exporter_name: "node-exporter"
 
 # Cadvisor Vars

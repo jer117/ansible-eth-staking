@@ -15,18 +15,28 @@ scrape_configs:
     static_configs:
       - targets: ["{{ execution_docker_container_name }}:{{ execution_monitoring_port }}"]
 
+  # Lighthouse and Teku both serve metrics on /metrics (the default path)
   - job_name: "{{ role }}-exporter"
-    metrics_path: /metrics/prometheus
     static_configs:
       - targets: ["{{ consensus_docker_container_name }}:{{ consensus_monitoring_port }}"]
+
+  # Lighthouse or Lodestar validator client
+  - job_name: 'validator-client'
+    static_configs:
+      - targets: ["{{ validator_docker_container_name }}:{{ validator_monitoring_port }}"]
 
   - job_name: 'cadvisor'
     static_configs:
       - targets: ['cadvisor:{{ cadvisor_internal_port }}']
 
-  - job_name: 'grafana_agent'
+  - job_name: 'alertmanager'
     static_configs:
-      - targets: ['grafana_agent:{{ grafana_agent_http_port }}']  # Adjust if necessary
+      - targets: ['alertmanager:9093']
+
+  # mev-boost is not scraped: v1.9 (mev_boost_docker_image) has no metrics.
+  # From v1.10 they are opt-in via -metrics on a separate -metrics-addr
+  # (default localhost:18551), not the API port. From v1.11 relay latency
+  # is in milliseconds (was microseconds) and buckets use `le` (was `vmrange`).
 
   - job_name: 'charon-local'
     static_configs:
