@@ -111,7 +111,7 @@
   become: true
   community.docker.docker_container:
     name: "{{ node_exporter_name }}"
-    image: prom/node-exporter:latest
+    image: "{{ node_exporter_image }}"
     state: started
     pull: true
     restart_policy: unless-stopped
@@ -128,7 +128,7 @@
   become: true
   community.docker.docker_container:
     name: alertmanager
-    image: prom/alertmanager:latest
+    image: "{{ alertmanager_image }}"
     state: started
     pull: true
     restart_policy: unless-stopped
@@ -150,7 +150,7 @@
   become: true
   community.docker.docker_container:
     name: "{{prometheus_name}}"
-    image: prom/prometheus:latest
+    image: "{{ prometheus_image }}"
     state: started
     pull: true
     restart_policy: unless-stopped
@@ -175,7 +175,7 @@
   become: true
   community.docker.docker_container:
     name: grafana_agent
-    image: grafana/agent:v0.41.1
+    image: "{{ grafana_agent_image }}"
     state: started
     pull: true
     restart_policy: unless-stopped
@@ -197,7 +197,7 @@
   become: true
   community.docker.docker_container:
     name: grafana
-    image: grafana/grafana:latest
+    image: "{{ grafana_image }}"
     state: started
     pull: true
     restart_policy: unless-stopped

@@ -14,13 +14,44 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# APISIX Standalone mode configuration for Ethereum clients
+# {{ ansible_managed }}
+#
+# APISIX standalone configuration for the Ethereum clients (conf/apisix.yaml).
+#
+# Authentication uses APISIX's built-in key-auth plugin. The multi-auth plugin
+# accepts either of:
+#   X-API-Key: <apisix_api_key>
+#   Authorization: Bearer <apisix_bearer_token>
+# Credentials are removed from the request before it reaches the clients.
+
+consumers:
+  - username: api_key_client
+    plugins:
+      key-auth:
+        key: {{ apisix_api_key_resolved | to_json }}
+  - username: bearer_token_client
+    plugins:
+      key-auth:
+        key: {{ ('Bearer ' ~ apisix_bearer_token_resolved) | to_json }}
+
+plugin_configs:
+  - id: client-auth
+    plugins:
+      multi-auth:
+        auth_plugins:
+          - key-auth:
+              header: X-API-Key
+              hide_credentials: true
+          - key-auth:
+              header: Authorization
+              hide_credentials: true
 
 routes:
-  # Execution client (Nethermind) JSON-RPC endpoint with forward-auth
+  # Execution client (Nethermind) JSON-RPC endpoint
   - id: execution-rpc
     name: "Execution RPC Endpoint"
     uri: /execution/*
+    plugin_config_id: client-auth
     upstream:
       type: roundrobin
       nodes:
@@ -30,31 +61,17 @@ routes:
         send: 30
         read: 30
     plugins:
-      forward-auth:
-        uri: "http://{{ apisix_auth_service_host }}:{{ apisix_auth_service_port }}/auth/validate"
-        request_method: "GET"
-        request_headers:
-          - "Authorization"
-          - "X-API-Key"
-        upstream_headers:
-          - "X-User-ID"
-          - "X-Auth-User"
-        client_headers:
-          - "WWW-Authenticate"
-        timeout: 5000
-        keepalive: true
-        ssl_verify: false
-        allow_degradation: {{ apisix_allow_degradation | default('false') }}
       proxy-rewrite:
         regex_uri:
           - "^/execution/(.*)"
           - "/$1"
       prometheus: {}
 
-  # Consensus client (Lighthouse) HTTP API endpoint with forward-auth
+  # Consensus client HTTP API endpoint
   - id: consensus-api
     name: "Consensus API Endpoint"
     uri: /consensus/*
+    plugin_config_id: client-auth
     upstream:
       type: roundrobin
       nodes:
@@ -64,21 +81,6 @@ routes:
         send: 30
         read: 30
     plugins:
-      forward-auth:
-        uri: "http://{{ apisix_auth_service_host }}:{{ apisix_auth_service_port }}/auth/validate"
-        request_method: "GET"
-        request_headers:
-          - "Authorization"
-          - "X-API-Key"
-        upstream_headers:
-          - "X-User-ID"
-          - "X-Auth-User"
-        client_headers:
-          - "WWW-Authenticate"
-        timeout: 5000
-        keepalive: true
-        ssl_verify: false
-        allow_degradation: {{ apisix_allow_degradation | default('false') }}
       proxy-rewrite:
         regex_uri:
           - "^/consensus/(.*)"
@@ -107,45 +109,10 @@ routes:
       nodes:
         "{{ execution_docker_container_name }}:{{ eth_ansible_execution_1_rpc_port }}": 1
     plugins:
-      serverless-pre-function:
-        phase: rewrite
-        functions:
-          - "return function(conf, ctx)
-              local core = require('apisix.core')
-              core.request.set_header(ctx, 'Content-Type', 'application/json')
-            end"
+      proxy-rewrite:
+        headers:
+          set:
+            Content-Type: application/json
       prometheus: {}
-
-{% if apisix_enable_auth_service | default(true) %}
-  # Simple auth service endpoint (validates API keys)
-  - id: auth-service
-    name: "Auth Service"
-    uri: /auth/validate
-    plugins:
-      serverless-pre-function:
-        phase: rewrite
-        functions:
-          - "return function(conf, ctx)
-              local core = require('apisix.core')
-              local authorization = core.request.header(ctx, 'Authorization')
-              local api_key = core.request.header(ctx, 'X-API-Key')
-              
-              -- Check for valid API key or Bearer token
-              if api_key == '{{ apisix_api_key }}' then
-                core.response.set_header('X-User-ID', 'api-user')
-                core.response.set_header('X-Auth-User', 'authenticated')
-                core.response.exit(200)
-              elseif authorization and authorization:match('^Bearer {{ apisix_bearer_token }}$') then
-                core.response.set_header('X-User-ID', 'bearer-user')
-                core.response.set_header('X-Auth-User', 'authenticated')
-                core.response.exit(200)
-              else
-                core.response.set_header('WWW-Authenticate', 'Bearer realm=\"APISIX\"')
-                core.response.exit(401, 'Unauthorized: Invalid or missing credentials')
-              end
-            end"
-      prometheus: {}
-{% endif %}
 
 #END
-

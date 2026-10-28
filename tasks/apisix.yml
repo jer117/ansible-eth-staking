@@ -1,4 +1,38 @@
 ---
+# APISIX runs in file-driven standalone mode (see templates/apisix-config.yaml.j2), so it
+# needs no etcd and exposes no Admin API. Authentication is APISIX's built-in key-auth.
+
+- name: Resolve APISIX client credentials
+  vars:
+    _apisix_credentials_dir: >-
+      {{ apisix_credentials_dir | default((inventory_dir | default(playbook_dir, true))
+         ~ '/credentials/' ~ inventory_hostname ~ '/apisix') }}
+  ansible.builtin.set_fact:
+    # Use apisix_api_key / apisix_bearer_token from host_vars or secrets when set. Otherwise
+    # Ansible's password lookup generates a random value once and stores it on the control
+    # machine under credentials/<host>/apisix/ (gitignored), reusing it on later runs.
+    apisix_api_key_resolved: >-
+      {{ apisix_api_key if apisix_api_key is defined else
+         lookup('ansible.builtin.password', _apisix_credentials_dir ~ '/api_key',
+                length=48, chars=['ascii_letters', 'digits']) }}
+    apisix_bearer_token_resolved: >-
+      {{ apisix_bearer_token if apisix_bearer_token is defined else
+         lookup('ansible.builtin.password', _apisix_credentials_dir ~ '/bearer_token',
+                length=48, chars=['ascii_letters', 'digits']) }}
+  no_log: true
+
+- name: Reject placeholder APISIX credentials
+  ansible.builtin.assert:
+    that:
+      - apisix_api_key_resolved | length >= 16
+      - apisix_bearer_token_resolved | length >= 16
+      - apisix_api_key_resolved is not search('changeme|change-this')
+      - apisix_bearer_token_resolved is not search('changeme|change-this')
+    fail_msg: >-
+      apisix_api_key and apisix_bearer_token must be real secrets (16+ characters, not the
+      example placeholders). Delete them from your vars to have Ansible generate random ones.
+    quiet: true
+
 - name: Create directory structure for APISIX
   become_user: root
   become: true
@@ -11,33 +45,37 @@
   with_items:
     - "{{ apisix_config_dir }}"
     - "{{ apisix_config_dir }}/apisix"
-    - "{{ apisix_data_dir }}"
 
 - name: Copy APISIX config.yaml
   become_user: root
   become: true
   ansible.builtin.template:
-    src: apisix-config.yaml.j2
+    # Relative to this file so it also resolves when imported from playbooks/apisix-only.yml.
+    src: ../templates/apisix-config.yaml.j2  # noqa: no-relative-paths
     dest: "{{ apisix_config_dir }}/apisix/config.yaml"
     mode: "0644"
   notify: Restart APISIX
 
+# This file holds the client credentials. The APISIX image runs as uid/gid 636 (apisix),
+# so the file is readable by that group only.
 - name: Copy APISIX routes configuration
   become_user: root
   become: true
   ansible.builtin.template:
-    src: apisix-routes.yaml.j2
+    src: ../templates/apisix-routes.yaml.j2  # noqa: no-relative-paths
     dest: "{{ apisix_config_dir }}/apisix/apisix.yaml"
-    mode: "0644"
+    owner: "root"
+    group: "636"
+    mode: "0640"
+  no_log: true
   notify: Restart APISIX
 
-- name: Pull etcd Docker image
+- name: Remove the etcd container used by earlier versions of this role
   become_user: root
   become: true
-  community.docker.docker_image:
-    name: "{{ apisix_etcd_image }}"
-    source: pull
-  tags: [apisix]
+  community.docker.docker_container:
+    name: "{{ apisix_etcd_container_name }}"
+    state: absent
 
 - name: Pull APISIX Docker image
   become_user: root
@@ -45,63 +83,6 @@
   community.docker.docker_image:
     name: "{{ apisix_image }}"
     source: pull
-  tags: [apisix]
-
-- name: Start etcd container for APISIX (AMD64)
-  become_user: root
-  become: true
-  community.docker.docker_container:
-    name: "{{ apisix_etcd_container_name }}"
-    image: "{{ apisix_etcd_image }}"
-    state: started
-    restart_policy: unless-stopped
-    timeout: 300
-    networks:
-      - name: "eth-staking-network-net"
-    networks_cli_compatible: true
-    volumes:
-      - "{{ apisix_data_dir }}/etcd:/bitnami/etcd"
-    env:
-      ETCD_ENABLE_V2: "true"
-      ALLOW_NONE_AUTHENTICATION: "yes"
-      ETCD_ADVERTISE_CLIENT_URLS: "http://{{ apisix_etcd_container_name }}:2379"
-      ETCD_LISTEN_CLIENT_URLS: "http://0.0.0.0:2379"
-    ports:
-      - "127.0.0.1:2379:2379"
-  when: ansible_architecture != "aarch64"
-
-- name: Start etcd container for APISIX (ARM64)
-  become_user: root
-  become: true
-  community.docker.docker_container:
-    name: "{{ apisix_etcd_container_name }}"
-    image: "{{ apisix_etcd_image }}"
-    state: started
-    restart_policy: unless-stopped
-    timeout: 300
-    user: root
-    networks:
-      - name: "eth-staking-network-net"
-    networks_cli_compatible: true
-    volumes:
-      - "{{ apisix_data_dir }}/etcd:/etcd-data"
-    env:
-      ETCD_UNSUPPORTED_ARCH: "arm64"
-      ETCD_ENABLE_V2: "true"
-      ALLOW_NONE_AUTHENTICATION: "yes"
-      ETCD_ADVERTISE_CLIENT_URLS: "http://{{ apisix_etcd_container_name }}:2379"
-      ETCD_LISTEN_CLIENT_URLS: "http://0.0.0.0:2379"
-      ETCD_DATA_DIR: "/etcd-data"
-    ports:
-      - "127.0.0.1:2379:2379"
-  when: ansible_architecture == "aarch64"
-
-- name: Wait for etcd to be ready
-  ansible.builtin.wait_for:
-    host: 127.0.0.1
-    port: 2379
-    delay: 5
-    timeout: 60
 
 - name: Start APISIX container
   become_user: root
@@ -114,15 +95,12 @@
     timeout: 300
     networks:
       - name: "eth-staking-network-net"
-    networks_cli_compatible: true
     volumes:
       - "{{ apisix_config_dir }}/apisix/config.yaml:/usr/local/apisix/conf/config.yaml:ro"
       - "{{ apisix_config_dir }}/apisix/apisix.yaml:/usr/local/apisix/conf/apisix.yaml:ro"
     ports:
       - "{{ apisix_gateway_port }}:9080"
-      - "{{ apisix_admin_port }}:9180"
       - "{{ apisix_https_port }}:9443"
-  tags: [apisix]
 
 - name: Wait for APISIX to be ready
   ansible.builtin.wait_for:
@@ -130,4 +108,3 @@
     port: "{{ apisix_gateway_port }}"
     delay: 10
     timeout: 60
-

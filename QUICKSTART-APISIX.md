@@ -2,35 +2,23 @@
 
 ## 1. Configure Authentication Keys
 
-First, generate secure authentication keys:
+Clients authenticate with an API key or a bearer token. You don't have to create them: if `apisix_api_key` and `apisix_bearer_token` are not set, the playbook generates random values on the first run and stores them on your control machine (see step 4).
+
+To choose your own instead, generate secure keys:
 
 ```bash
 # Generate API Key
 echo "apisix_api_key: \"$(openssl rand -hex 32)\""
 
-# Generate Bearer Token  
-echo "apisix_bearer_token: \"$(openssl rand -base64 32)\""
-
-# Generate Admin Key
-echo "apisix_admin_key: \"$(openssl rand -hex 32)\""
+# Generate Bearer Token
+echo "apisix_bearer_token: \"$(openssl rand -hex 32)\""
 ```
 
-Add these to your `secrets.yml` or `host_vars/<your-host>.yml`:
-
-```yaml
-# Security keys for APISIX
-apisix_api_key: "your-generated-api-key-here"
-apisix_bearer_token: "your-generated-bearer-token-here"
-apisix_admin_key: "your-generated-admin-key-here"
-```
+Add the two lines to your `secrets.yml` or `host_vars/<your-host>.yml`. The playbook rejects keys shorter than 16 characters and the `changeme` / `change-this` placeholders from the examples.
 
 ## 2. Enable APISIX
 
-In your `host_vars/<your-host>.yml` or `vars/main.yml`:
-
-```yaml
-apisix_enabled: true
-```
+APISIX is enabled by default (`apisix_enabled: true` in `defaults/main.yml`).
 
 ## 3. Deploy APISIX
 
@@ -50,7 +38,19 @@ ssh <your-server> 'docker ps | grep apisix'
 
 # Expected output:
 # eth-ansible-apisix
-# eth-ansible-apisix-etcd
+```
+
+If Ansible generated the credentials, read them on the control machine (in the directory that holds your inventory file):
+
+```bash
+cat credentials/<inventory_hostname>/apisix/api_key
+cat credentials/<inventory_hostname>/apisix/bearer_token
+```
+
+Run the verification script:
+
+```bash
+./examples/verify-apisix.sh <your-server> "$(cat credentials/<inventory_hostname>/apisix/api_key)"
 ```
 
 ## 5. Test the Gateway
@@ -107,18 +107,14 @@ All execution client requests go to: `http://<server>:9080/execution/`
 
 ## 7. Monitoring
 
-View APISIX metrics:
+APISIX serves Prometheus metrics on port 9091 inside the Docker network (the port is not published on the host). View them on the server:
 ```bash
-curl http://<your-server>:9091/apisix/prometheus/metrics
+ssh <your-server> 'docker run --rm --network eth-staking-network-net curlimages/curl -s http://eth-ansible-apisix:9091/apisix/prometheus/metrics'
 ```
 
-## 8. Administration
+## 8. Changing the Configuration
 
-List all configured routes:
-```bash
-curl -H "X-API-KEY: your-admin-key" \
-  http://<your-server>:9180/apisix/admin/routes
-```
+There is no Admin API. Routes, consumers and plugins are defined in `templates/apisix-routes.yaml.j2`; edit it (or your vars) and re-run step 3.
 
 ## 9. Troubleshooting
 
@@ -127,19 +123,21 @@ Check logs:
 # APISIX logs
 ssh <your-server> 'docker logs eth-ansible-apisix'
 
-# etcd logs
-ssh <your-server> 'docker logs eth-ansible-apisix-etcd'
+# Errors loading apisix.yaml (every route, including /health, returns 404)
+ssh <your-server> 'docker logs eth-ansible-apisix 2>&1 | grep config_yaml'
 ```
 
-Test authentication service:
+Test authentication:
 ```bash
 # Should return 401 Unauthorized
-curl -i http://<your-server>:9080/auth/validate
+curl -i http://<your-server>:9080/consensus/eth/v1/node/version
 
 # Should return 200 OK
 curl -i -H "X-API-Key: your-api-key" \
-  http://<your-server>:9080/auth/validate
+  http://<your-server>:9080/consensus/eth/v1/node/version
 ```
+
+Upgrading from the etcd-based setup? See [README-APISIX.md](README-APISIX.md#upgrading-from-the-etcd-based-setup). The old etcd data in `/data/apisix` can be deleted manually.
 
 ## 10. Network Diagram
 
@@ -153,34 +151,36 @@ curl -i -H "X-API-Key: your-api-key" \
 ┌─────────────────────────────────┐
 │         APISIX Gateway          │
 │         Port: 9080              │
+│                                 │
+│  key-auth checks credentials    │
+│  missing/wrong → 401            │
 └──────┬──────────────────────────┘
-       │
-       ├─► Forward Auth Service ──► Validates API Key/Token
-       │                             Returns 200/401
+       │ Authenticated request
+       │ (credential header removed)
        ▼
 ┌─────────────────────────────────┐
 │    Upstream Services            │
 │                                 │
-│  ┌──────────────────────────┐  │
-│  │  Lighthouse (Consensus)  │  │
-│  │  Port: 5062              │  │
-│  └──────────────────────────┘  │
+│  ┌──────────────────────────┐   │
+│  │  Lighthouse (Consensus)  │   │
+│  │  Port: 5062              │   │
+│  └──────────────────────────┘   │
 │                                 │
-│  ┌──────────────────────────┐  │
-│  │  Nethermind (Execution)  │  │
-│  │  Port: 8544              │  │
-│  └──────────────────────────┘  │
+│  ┌──────────────────────────┐   │
+│  │  Nethermind (Execution)  │   │
+│  │  Port: 8544              │   │
+│  └──────────────────────────┘   │
 └─────────────────────────────────┘
 ```
 
 ## 11. Security Best Practices
 
-1. **Change Default Keys**: Always override default authentication keys
+1. **Use Strong Keys**: Let Ansible generate the keys, or use `openssl rand -hex 32`
 2. **Use HTTPS**: In production, configure SSL/TLS certificates
 3. **IP Whitelisting**: Consider restricting access by IP
-4. **Firewall Rules**: Only expose port 9080/9443 externally, keep 9180 internal
+4. **Firewall Rules**: Only expose port 9080/9443 externally
 5. **Rate Limiting**: Add rate limiting for production use
-6. **Rotate Keys**: Regularly rotate API keys and bearer tokens
+6. **Rotate Keys**: Regularly rotate API keys and bearer tokens (delete the generated files or change your vars, then re-run the playbook)
 
 ## 12. Advanced Features
 
@@ -194,6 +194,6 @@ See `README-APISIX.md` for:
 ## Need Help?
 
 - APISIX Documentation: https://apisix.apache.org/docs/apisix/
-- Forward-Auth Plugin: https://apisix.apache.org/docs/apisix/plugins/forward-auth/
+- Key-Auth Plugin: https://apisix.apache.org/docs/apisix/plugins/key-auth/
 - Ansible Role: See `tasks/apisix.yml` and `templates/apisix-*.j2`
 

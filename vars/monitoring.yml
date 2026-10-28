@@ -9,13 +9,15 @@ node_exporter_name: "node-exporter"
 cadvisor_name: "cadvisor"
 grafana_name: "grafana"
 
-# Docker images
-prometheus_image: "prom/prometheus:latest"
-alertmanager_image: "prom/alertmanager:latest"
+# Docker images (pinned; used by tasks/monitoring.yml)
+# cadvisor_image is set in defaults/main.yml.
+prometheus_image: "prom/prometheus:v3.15.1"
+alertmanager_image: "prom/alertmanager:v0.34.1"
 loki_image: "grafana/loki:2.9.0"
-node_exporter_image: "prom/node-exporter:latest"
-cadvisor_image: "gcr.io/cadvisor/cadvisor:v0.47.0"
-grafana_image: "grafana/grafana:10.0.0"
+node_exporter_image: "prom/node-exporter:v1.12.1"
+grafana_image: "grafana/grafana:13.3.0"
+# Grafana Agent reached end of life in Nov 2025 (replacement: Grafana Alloy); v0.44.8 is its final release.
+grafana_agent_image: "grafana/agent:v0.44.8"
 
 # Network ports
 prometheus_port: 9090
