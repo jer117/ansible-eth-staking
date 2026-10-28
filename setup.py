@@ -81,6 +81,10 @@ def configure_ethereum_node():
     config["network"] = network
     config["NETWORK_NAME"] = network  # keep both variables set and consistent
 
+    # Charon is only used by distributed validators (configure_charon_validator turns it
+    # on). Write it explicitly: the playbook's default is "true".
+    config["charon_enabled"] = "false"
+
     # MEV configuration
     config["mev_boost_enabled"] = yes_no("\nDo you want to enable MEV-Boost?")
 
