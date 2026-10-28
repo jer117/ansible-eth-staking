@@ -4,8 +4,9 @@
 #
 # Variables come from roles/ethereum_home_staking (found through playbooks/roles,
 # a symlink to ../roles). Override them in host_vars/ or group_vars/ as for main.yml.
+# Targets all hosts like main.yml; use --limit to deploy to some of them.
 - name: Set up Ethereum monitoring stack
-  hosts: ethereum_nodes
+  hosts: all
   become: true
   tasks:
     - name: Include monitoring tasks
