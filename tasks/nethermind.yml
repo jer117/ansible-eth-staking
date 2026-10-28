@@ -67,3 +67,4 @@
       --JsonRpc.EnabledModules "[\"admin\",\"eth\",\"subscribe\",\"net\",\"web3\",\"txpool\",\"debug\"]"
       --JsonRpc.JwtSecretFile "/exec_token/token"
       --Network.P2PPort {{ eth_ansible_execution_1_p2p_port }}
+      --Network.DiscoveryPort {{ eth_ansible_execution_1_p2p_port }}

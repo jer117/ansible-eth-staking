@@ -100,8 +100,8 @@ Teku is configured as an **archive node** with:
 
 - `5062` - REST API (Beacon API)
 - `8081` - Prometheus metrics
-- `9000` - P2P TCP
-- `9001` - P2P QUIC (if configured)
+- `9000` - P2P (TCP for peer connections, UDP for discv5 discovery)
+- `9001` - QUIC (UDP). Published for Lighthouse; Teku 25.11 does not use it, Teku 26.7+ listens on it by default
 
 ### Volumes Mounted
 

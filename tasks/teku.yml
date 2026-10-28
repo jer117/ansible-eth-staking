@@ -77,8 +77,8 @@
       --rest-api-interface=0.0.0.0
       --rest-api-cors-origins=*
       --p2p-enabled=true
-      --p2p-port={{ consensus_p2p_port | default('9000') }}
-      --p2p-advertised-port={{ consensus_p2p_port | default('9000') }}
+      --p2p-port={{ consensus_client_p2p_port }}
+      --p2p-advertised-port={{ consensus_client_p2p_port }}
       --p2p-peer-upper-bound={{ consensus_target_peers | default('100') }}
       --ee-endpoint=http://{{ execution_docker_container_name }}:{{ execution_auth_port }}
       --ee-jwt-secret-file=/exec_token/token
