@@ -226,7 +226,11 @@ telegram_chat_id: "-1001234567890"              # numeric chat ID; add the bot t
 
 The play stops with an error if `telegram_enabled` is true but the token or a numeric chat ID is missing. To use another channel (Slack, Discord, email, webhook), add a receiver in [templates/alertmanager.yml](templates/alertmanager.yml).
 
-Rules: high CPU, memory, disk IO and disk space; execution client, beacon node and validator client down (the validator rule only exists when a validator is enabled).
+Rules:
+- **Host**: high CPU, memory, disk IO and disk space.
+- **Execution client**: down, or not processing new blocks for 15 minutes. This also fires during the initial sync.
+- **Beacon node** (Lighthouse or Teku): down, head not advancing for 15 minutes, or syncing for more than 30 minutes.
+- **Validator client** (Lighthouse or Lodestar, only when a validator is enabled): down, or has attestation duties but has sent no attestation in 15 minutes.
 
 ## Debugging Commands
 

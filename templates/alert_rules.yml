@@ -70,6 +70,17 @@ groups:
           description: "Prometheus has not been able to scrape the execution client ({{ $labels.instance }}) for 5 minutes."
 {% endraw %}
 
+      - alert: ExecutionClientHeadStalled
+        # ethereum_blockchain_height is Nethermind's last processed block. It also stays flat
+        # during the initial snap sync, so this fires until the first sync finishes.
+        expr: changes(ethereum_blockchain_height{job="{{ execution_job }}"}[10m]) == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Execution client is not processing new blocks"
+          description: "The execution client has not processed a new block for 15 minutes. It is stuck, still syncing, or not getting blocks from the beacon node."
+
       - alert: BeaconNodeDown
         expr: up{job="{{ consensus_job }}"} == 0
         for: 5m
@@ -80,6 +91,27 @@ groups:
 {%- raw %}
           description: "Prometheus has not been able to scrape the beacon node ({{ $labels.instance }}) for 5 minutes."
 {% endraw %}
+
+      - alert: BeaconNodeHeadStalled
+        # beacon_head_slot is exported by both Lighthouse and Teku.
+        expr: changes(beacon_head_slot{job="{{ consensus_job }}"}[10m]) == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Beacon node head is not advancing"
+          description: "The beacon node's head slot has not changed for 15 minutes. Check the beacon node and execution client logs."
+
+      - alert: BeaconNodeNotSynced
+        # Lighthouse: sync_eth2_synced is 0 while syncing or stalled (backfill counts as synced).
+        # Teku: beacon_node_syncing_active is 1 while syncing or waiting for the execution client.
+        expr: sync_eth2_synced{job="{{ consensus_job }}"} == 0 or beacon_node_syncing_active{job="{{ consensus_job }}"} == 1
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Beacon node is not synced"
+          description: "The beacon node has reported that it is syncing, not following the chain head, for more than 30 minutes."
 {% if validator_enabled %}
 
       - alert: ValidatorClientDown
@@ -92,4 +124,34 @@ groups:
 {%- raw %}
           description: "Prometheus has not been able to scrape the validator client ({{ $labels.instance }}) for 5 minutes. Validators are probably missing duties."
 {% endraw %}
+
+      - alert: ValidatorNotAttesting
+        # The validator client has attestation duties but no attestation went out in 15 minutes.
+        # Each target only exports one client's metrics, so one side of the `or` is always empty:
+        #   Lighthouse VC: successful signings (vc_signed_attestations_total only appears after
+        #                  the first one, hence the startup grace period below).
+        #   Lodestar VC:   attestations accepted by the beacon node (Charon, in a DV setup).
+        # Skips the first 20 minutes after the validator client starts (first duty can be ~2 epochs away).
+        expr: |
+          (
+            (
+              vc_beacon_attester_count{job="{{ validator_job }}", task="current_epoch"} > 0
+                unless on (job, instance)
+              increase(vc_signed_attestations_total{job="{{ validator_job }}", status="success"}[15m]) > 0
+            )
+            or
+            (
+              vc_attester_duties_count{job="{{ validator_job }}"} > 0
+                unless on (job, instance)
+              increase(vc_published_attestations_total{job="{{ validator_job }}"}[15m]) > 0
+            )
+          )
+          and on (job, instance)
+          (time() - process_start_time_seconds{job="{{ validator_job }}"} > 1200)
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Validator is not attesting"
+          description: "The validator client has attestation duties but has not sent an attestation in the last 15 minutes. Check that the beacon node is synced and the validator client logs."
 {% endif %}
