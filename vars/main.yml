@@ -70,11 +70,14 @@ host_config_files:
 # Execution Layer docker ports
 # Docker publishes TCP only unless a mapping ends in /udp, so the P2P port is
 # listed twice: TCP for devp2p connections and UDP for peer discovery.
+# JSON-RPC and the Engine API are bound to localhost: Docker's published ports
+# bypass ufw, and the beacon node, APISIX and Prometheus reach Nethermind by
+# container name over eth-staking-network-net. Use APISIX for remote RPC.
 eth_ansible_execution_1_docker_ports:
   - "{{ eth_ansible_execution_1_p2p_port }}:{{ eth_ansible_execution_1_p2p_port }}/tcp"
   - "{{ eth_ansible_execution_1_p2p_port }}:{{ eth_ansible_execution_1_p2p_port }}/udp"
-  - "{{ eth_ansible_execution_1_rpc_port }}:{{ eth_ansible_execution_1_rpc_port }}"
-  - "{{ eth_ansible_execution_1_engine_port }}:{{ eth_ansible_execution_1_engine_port }}"
+  - "127.0.0.1:{{ eth_ansible_execution_1_rpc_port }}:{{ eth_ansible_execution_1_rpc_port }}"
+  - "127.0.0.1:{{ eth_ansible_execution_1_engine_port }}:{{ eth_ansible_execution_1_engine_port }}"
 
 consensus_monitoring_port: 8081
 consensus_client_http_api_port: 5062
