@@ -48,10 +48,12 @@
     state: present
   tags: [always]
 
+# Every container task attaches to this network, so runs limited with --tags need it too.
 - name: Create Docker network
   community.docker.docker_network:
     name: eth-staking-network-net
     state: present
+  tags: [always]
 
 - name: Import Lighthouse Consensus Client
   ansible.builtin.import_tasks: lighthouse.yml

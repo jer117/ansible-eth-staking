@@ -8,6 +8,13 @@
   hosts: ethereum_nodes
   become: true
   tasks:
+    # The monitoring containers attach to this network; main.yml creates it too.
+    - name: Create Docker network
+      community.docker.docker_network:
+        name: eth-staking-network-net
+        state: present
+      tags: [always]
+
     - name: Include monitoring tasks
       ansible.builtin.import_role:
         name: ethereum_home_staking

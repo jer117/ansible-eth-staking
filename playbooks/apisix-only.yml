@@ -52,6 +52,7 @@
       community.docker.docker_network:
         name: eth-staking-network-net
         state: present
+      tags: [always]
 
     - name: Import APISIX tasks
       ansible.builtin.import_role:
