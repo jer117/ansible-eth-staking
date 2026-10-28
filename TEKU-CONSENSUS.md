@@ -49,10 +49,9 @@ ansible-playbook -i inventory main.yml
 
 ## Docker Image
 
-- **AMD64**: `consensys/teku:25.11`
-- **ARM64**: `consensys/teku:25.11-arm64`
+- **AMD64 and ARM64**: `consensys/teku:26.10.3` (multi-arch; Teku no longer publishes `-arm64` tags)
 
-The appropriate image is automatically selected based on your server's architecture.
+Docker pulls the right architecture automatically.
 
 ## Teku Archive Mode Features
 

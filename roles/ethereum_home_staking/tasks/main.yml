@@ -11,7 +11,6 @@
       - "Selected Nethermind image: {{ nethermind_image }}"
       - "Selected Lighthouse image: {{ lighthouse_image }}"
       - "Selected Teku image: {{ teku_image }}"
-      - "Selected APISIX etcd image: {{ apisix_etcd_image }}"
       - "Consensus client: {{ consensus_client }}"
       - "Validator client: {{ validator_client | default('not set') }}"
       - "Charon enabled: {{ charon_enabled | bool }}"
@@ -50,7 +49,7 @@
   tags: [always]
 
 - name: Create Docker network
-  docker_network:
+  community.docker.docker_network:
     name: eth-staking-network-net
     state: present
 

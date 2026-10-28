@@ -2,19 +2,19 @@
 
 ## What Has Been Created
 
-An Ansible role for deploying Apache APISIX as an API Gateway with forward authentication for your Ethereum staking infrastructure.
+An Ansible role for deploying Apache APISIX as an API Gateway with API key / bearer token authentication (APISIX's built-in `key-auth` plugin) for your Ethereum staking infrastructure.
 
 ### Files Created
 
 #### Ansible Tasks & Templates
-- **`roles/ethereum_home_staking/tasks/apisix.yml`**: Main Ansible task file for deploying APISIX and etcd containers
-- **`roles/ethereum_home_staking/templates/apisix-config.yaml.j2`**: APISIX main configuration template
-- **`roles/ethereum_home_staking/templates/apisix-routes.yaml.j2`**: APISIX routes and forward-auth plugin configuration
+- **`roles/ethereum_home_staking/tasks/apisix.yml`**: Main Ansible task file: resolves the client credentials and deploys the APISIX container
+- **`roles/ethereum_home_staking/templates/apisix-config.yaml.j2`**: APISIX main configuration template (standalone mode)
+- **`roles/ethereum_home_staking/templates/apisix-routes.yaml.j2`**: APISIX routes, consumers and key-auth configuration
 
 #### Configuration Files
 - **`roles/ethereum_home_staking/defaults/main.yml`**: Updated with APISIX variables and defaults
 - **`main.yml`**: Updated to include APISIX deployment task
-- **`example.apisix-secrets.yml`**: Example secure credentials file
+- **`example.apisix-secrets.yml`**: Example credentials file
 - **`example.env.apisix`**: Environment variables example
 
 #### Documentation
@@ -31,25 +31,19 @@ An Ansible role for deploying Apache APISIX as an API Gateway with forward authe
 ## Architecture Overview
 
 ```
-Client → APISIX Gateway (Port 9080) → Forward Auth → Upstream Services
-                                                      ├─ Nethermind (8544)
-                                                      └─ Lighthouse (5062)
+Client → APISIX Gateway (Port 9080, key-auth) → Upstream Services
+                                                 ├─ Nethermind (8544)
+                                                 └─ Lighthouse (5062)
 ```
 
 ### Components
 
-1. **APISIX Gateway** (apache/apisix:3.14.1-debian)
-   - Routes and authenticates requests
-   - Enforces forward-auth plugin
-   - Exports Prometheus metrics
+**APISIX Gateway** (apache/apisix:3.19.0-debian)
+- Runs in file-driven standalone mode: routes and consumers are read from `apisix.yaml`, rendered by Ansible
+- Routes and authenticates requests with the `key-auth` plugin
+- Exports Prometheus metrics
 
-2. **etcd** (bitnami/etcd:3.5.11)
-   - Stores APISIX configuration
-   - Maintains routing rules
-
-3. **Auth Service** (Inline Lua)
-   - Validates API keys and bearer tokens
-   - Returns user metadata headers
+There is no etcd and no Admin API. Configuration changes are made by editing vars/templates and re-running Ansible.
 
 ## Endpoints Configured
 
@@ -71,8 +65,7 @@ Client → APISIX Gateway (Port 9080) → Forward Auth → Upstream Services
 
 | Endpoint | Purpose | Port |
 |----------|---------|------|
-| Admin API | Route management | 9180 |
-| Metrics | Prometheus metrics | 9091 |
+| Metrics | Prometheus metrics (Docker network only) | 9091 |
 
 ## Authentication Methods
 
@@ -88,71 +81,63 @@ curl -H "Authorization: Bearer your-bearer-token" \
   http://server:9080/consensus/eth/v1/node/version
 ```
 
+Requests without valid credentials get `401`. The credential header is removed before the request reaches the clients.
+
 ## Configuration Variables
 
-### Required Variables (Set in secrets.yml or host_vars)
+### Client Credentials (optional, set in secrets.yml or host_vars)
 
 ```yaml
-# Security - MUST BE CHANGED!
-apisix_admin_key: "your-secure-admin-key"
-apisix_api_key: "your-secure-api-key"
-apisix_bearer_token: "your-secure-bearer-token"
-
-# Enable APISIX
-apisix_enabled: true
+apisix_api_key: "<random value>"
+apisix_bearer_token: "<random value>"
 ```
+
+If these are not set, the playbook generates random 48-character values and stores them on the control machine in `credentials/<inventory_hostname>/apisix/api_key` and `.../bearer_token` (next to your inventory file, gitignored, mode 0600). Later runs reuse them. The playbook stops if a credential is shorter than 16 characters or contains the `changeme` / `change-this` example placeholders.
 
 ### Optional Variables (roles/ethereum_home_staking/defaults/main.yml)
 
 ```yaml
-# Docker Images
-apisix_image: "apache/apisix:3.14.1-debian"
-apisix_etcd_image: "bitnami/etcd:3.5.11"
+# Enable APISIX
+apisix_enabled: true
 
-# Container Names
+# Docker Image
+apisix_image: "apache/apisix:3.19.0-debian"
+
+# Container Name
 apisix_container_name: "eth-ansible-apisix"
-apisix_etcd_container_name: "eth-ansible-apisix-etcd"
 
 # Directories
 apisix_config_dir: "/root/.eth-staking/config/apisix"
-apisix_data_dir: "/data/apisix"
 
 # Ports
 apisix_gateway_port: 9080
-apisix_admin_port: 9180
 apisix_https_port: 9443
-apisix_prometheus_port: 9091
-
-# Auth Service
-apisix_enable_auth_service: true
-apisix_allow_degradation: false
 ```
+
+`apisix_enable_ipv6` (default `true`) can be set to `false` in host_vars for hosts without IPv6.
 
 ## Deployment Steps
 
-### 1. Generate Secure Keys
+### 1. Generate Secure Keys (optional)
+
+Skip this step to have Ansible generate the keys.
 
 ```bash
 # Generate API Key
 openssl rand -hex 32
 
 # Generate Bearer Token
-openssl rand -base64 32
-
-# Generate Admin Key
 openssl rand -hex 32
 
-# How to generate all the keys quickly
-echo "Generate these keys and add to host_vars/{{server_ip}}.yml:"; echo ""; echo "apisix_admin_key: \"$(openssl rand -hex 32)\""; echo "apisix_api_key: \"$(openssl rand -hex 32)\""; echo "apisix_bearer_token: \"$(openssl rand -base64 32)\""
+# How to generate both keys quickly
+echo "Generate these keys and add to host_vars/{{server_ip}}.yml:"; echo ""; echo "apisix_api_key: \"$(openssl rand -hex 32)\""; echo "apisix_bearer_token: \"$(openssl rand -hex 32)\""
 ```
 
 ### 2. Configure Secrets
 
-Add to `secrets.yml` or `host_vars/<server>.yml`:
+Add to `secrets.yml` or `host_vars/<server>.yml` (or leave them out to use generated keys):
 
 ```yaml
-apisix_enabled: true
-apisix_admin_key: "<generated-admin-key>"
 apisix_api_key: "<generated-api-key>"
 apisix_bearer_token: "<generated-bearer-token>"
 ```
@@ -177,6 +162,9 @@ ansible-playbook -i inventory playbooks/apisix-only.yml --ask-vault-pass
 ### 4. Verify Deployment
 
 ```bash
+# Generated API key (if you did not set one)
+cat credentials/<inventory_hostname>/apisix/api_key
+
 # Run verification script
 ./examples/verify-apisix.sh <server-ip> <api-key>
 
@@ -185,6 +173,10 @@ curl http://<server>:9080/health
 curl -H "X-API-Key: your-api-key" \
   http://<server>:9080/consensus/eth/v1/node/version
 ```
+
+### Upgrading from the etcd-based Setup
+
+The playbook removes the old `eth-ansible-apisix-etcd` container and no longer publishes the Admin API port 9180. The old etcd data directory (`/data/apisix`) can be deleted manually. See [README-APISIX.md](README-APISIX.md#upgrading-from-the-etcd-based-setup) for the variables you can remove.
 
 ## Usage Examples
 
@@ -247,17 +239,17 @@ sudo ufw deny 8544/tcp  # Nethermind
 
 ### 2. Key Management
 
-- ✅ Use strong, randomly generated keys
+- ✅ Use strong, randomly generated keys (or let Ansible generate them)
 - ✅ Store keys in encrypted vault (ansible-vault)
 - ✅ Rotate keys regularly
-- ✅ Never commit keys to version control
+- ✅ Never commit keys to version control (`credentials/` is gitignored)
 - ✅ Use different keys per environment
 
 ### 3. Network Security
 
 - ✅ Run containers in isolated Docker network
 - ✅ Only expose APISIX gateway externally
-- ✅ Keep Admin API (9180) internal only
+- ✅ No Admin API is exposed; configuration changes go through Ansible
 - ✅ Use HTTPS in production with valid certificates
 
 ### 4. Monitoring
@@ -271,10 +263,11 @@ sudo ufw deny 8544/tcp  # Nethermind
 
 ### Prometheus Metrics
 
-APISIX exports metrics on port 9091:
+APISIX exports metrics on port 9091 inside the Docker network (not published on the host):
 
 ```bash
-curl http://server:9091/apisix/prometheus/metrics
+docker run --rm --network eth-staking-network-net curlimages/curl \
+  -s http://eth-ansible-apisix:9091/apisix/prometheus/metrics
 ```
 
 ### Key Metrics to Monitor
@@ -287,13 +280,13 @@ curl http://server:9091/apisix/prometheus/metrics
 
 ### Grafana Integration
 
-Add APISIX datasource to your existing Grafana:
+The Prometheus container is on the same Docker network, so add a scrape job to `roles/ethereum_home_staking/templates/prometheus.yml`; the metrics then show up in Grafana through the existing Prometheus datasource:
 
 ```yaml
-- name: APISIX
-  type: prometheus
-  url: http://eth-ansible-apisix:9091
-  access: proxy
+  - job_name: 'apisix'
+    static_configs:
+      - targets: ['eth-ansible-apisix:9091']
+    metrics_path: '/apisix/prometheus/metrics'
 ```
 
 ## Troubleshooting
@@ -313,8 +306,11 @@ docker ps | grep -E 'execution|consensus'
 **Solution**: Verify API key matches configuration
 
 ```bash
-# Test auth service directly
-curl -i -H "X-API-Key: your-key" http://server:9080/auth/validate
+# Generated key (if you did not set apisix_api_key)
+cat credentials/<inventory_hostname>/apisix/api_key
+
+# Test an authenticated request
+curl -i -H "X-API-Key: your-key" http://server:9080/consensus/eth/v1/node/version
 ```
 
 #### 3. Connection Refused
@@ -326,50 +322,40 @@ docker logs eth-ansible-apisix
 docker restart eth-ansible-apisix
 ```
 
-#### 4. etcd Connection Issues
-**Cause**: etcd not ready or network issues  
-**Solution**: Check etcd logs and restart
+#### 4. 404 Not Found on Every Route (including /health)
+**Cause**: APISIX could not load `apisix.yaml`  
+**Solution**: Check the logs for `config_yaml.lua` errors, fix the template and re-run the playbook
 
 ```bash
-docker logs eth-ansible-apisix-etcd
-docker restart eth-ansible-apisix-etcd
+docker logs eth-ansible-apisix 2>&1 | grep config_yaml
 ```
 
 ### Debugging Commands
 
 ```bash
-# Check all APISIX containers
+# Check APISIX container
 docker ps -a | grep apisix
 
 # View APISIX logs
 docker logs -f eth-ansible-apisix
 
-# View etcd logs
-docker logs -f eth-ansible-apisix-etcd
+# Test network connectivity (the APISIX image has no curl or ping)
+docker run --rm --network eth-staking-network-net curlimages/curl -s http://eth-ansible-consensus-1:5062/eth/v1/node/health
+docker run --rm --network eth-staking-network-net curlimages/curl -s -X POST http://eth-ansible-execution-1:8544
 
-# Test network connectivity
-docker exec eth-ansible-apisix ping eth-ansible-consensus-1
-docker exec eth-ansible-apisix ping eth-ansible-execution-1
-
-# List routes via Admin API
-curl -H "X-API-KEY: your-admin-key" \
-  http://server:9180/apisix/admin/routes
+# Show the routes APISIX is running with
+sudo cat /root/.eth-staking/config/apisix/apisix/apisix.yaml
 ```
 
 ## Advanced Configuration
 
 ### Enable HTTPS
 
-1. Generate SSL certificates
-2. Mount certificates to APISIX container
-3. Update `roles/ethereum_home_staking/templates/apisix-config.yaml.j2`:
+APISIX already listens for HTTPS on port 9443 (published); it needs a certificate:
 
-```yaml
-apisix:
-  ssl:
-    enable: true
-    ssl_protocols: "TLSv1.2 TLSv1.3"
-```
+1. Generate SSL certificates
+2. Add them as an `ssls` entry (certificate, key and SNIs) in `roles/ethereum_home_staking/templates/apisix-routes.yaml.j2`
+3. Re-run the playbook
 
 ### Add Rate Limiting
 
@@ -401,12 +387,6 @@ plugins:
 - Configure connection pool sizes
 - Enable caching for frequent requests
 
-### etcd Optimization
-
-- Increase memory limits for large deployments
-- Configure snapshot policies
-- Use etcd cluster for HA
-
 ## Resources
 
 ### Documentation
@@ -424,13 +404,14 @@ plugins:
 
 ### External Resources
 - [Apache APISIX Documentation](https://apisix.apache.org/docs/apisix/)
-- [Forward-Auth Plugin](https://apisix.apache.org/docs/apisix/plugins/forward-auth/)
-- [APISIX Admin API](https://apisix.apache.org/docs/apisix/admin-api/)
+- [Standalone Mode](https://apisix.apache.org/docs/apisix/deployment-modes/#standalone)
+- [Key-Auth Plugin](https://apisix.apache.org/docs/apisix/plugins/key-auth/)
+- [Multi-Auth Plugin](https://apisix.apache.org/docs/apisix/plugins/multi-auth/)
 
 ## Next Steps
 
 1. ✅ Review and understand the architecture
-2. ✅ Generate secure authentication keys
+2. ✅ Set authentication keys, or use the ones Ansible generates
 3. ✅ Configure secrets in ansible vault
 4. ✅ Deploy APISIX using one of the deployment methods
 5. ✅ Verify deployment using verification script
@@ -452,6 +433,7 @@ For issues or questions:
 ---
 
 **Created**: 2025-11-29  
+**Updated**: 2026-10-28 (standalone mode, key-auth)  
 **Version**: 1.0.0  
 **Ansible Role**: ethereum-home-staking with APISIX integration
 

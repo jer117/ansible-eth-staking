@@ -14,52 +14,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+# {{ ansible_managed }}
+#
+# APISIX runs in file-driven standalone mode: routes and consumers are read from
+# conf/apisix.yaml (templates/apisix-routes.yaml.j2). No etcd or Admin API is needed;
+# Ansible is the only way to change the gateway's configuration.
 
 apisix:
   node_listen:
     - 9080
-  enable_admin: true
-  enable_admin_cors: true
   enable_dev_mode: false
   enable_reuseport: true
-  enable_ipv6: true
-  
-  allow_admin:
-    - 0.0.0.0/0
-
-  admin_key:
-    - name: "admin"
-      key: {{ apisix_admin_key }}
-      role: admin
+  enable_ipv6: {{ apisix_enable_ipv6 | default(true) | bool | lower }}
 
 deployment:
-  role: traditional
-  role_traditional:
-    config_provider: etcd
-  admin:
-    admin_key:
-      - name: "admin"
-        key: {{ apisix_admin_key }}
-        role: admin
-    enable_admin_cors: true
-    allow_admin:
-      - 0.0.0.0/0
-    admin_listen:
-      ip: 0.0.0.0
-      port: 9180
-  etcd:
-    host:
-      - "http://{{ apisix_etcd_container_name }}:2379"
-    prefix: "/apisix"
-    timeout: 30
+  role: data_plane
+  role_data_plane:
+    config_provider: yaml
 
 nginx_config:
   error_log: "/usr/local/apisix/logs/error.log"
   error_log_level: "warn"
-  
+
 plugin_attr:
   prometheus:
     export_addr:
       ip: "0.0.0.0"
       port: 9091
-

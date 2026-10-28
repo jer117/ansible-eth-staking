@@ -18,6 +18,7 @@ execution_container_name: execution
 charon_container_name: charon
 mev_boost_container_name: mev-boost
 apisix_container_name: "eth-ansible-apisix"
+# etcd is no longer used (APISIX runs in standalone mode); the old container is removed on deploy.
 apisix_etcd_container_name: "eth-ansible-apisix-etcd"
 prometheus_name: "prometheus"
 alertmanager_name: "alertmanager"

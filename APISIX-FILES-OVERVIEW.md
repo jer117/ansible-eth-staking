@@ -7,17 +7,19 @@
 #### 1. `roles/ethereum_home_staking/tasks/apisix.yml` (NEW)
 **Purpose**: Main Ansible task file for deploying APISIX  
 **Contains**:
+- Client credential resolution (from vars, or generated with Ansible's `password` lookup)
+- Placeholder check (fails on short or `changeme` / `change-this` credentials)
 - Directory creation for APISIX configs
-- Docker image pulls (APISIX + etcd)
-- Container deployment and configuration
-- Network setup
+- Config file rendering
+- Docker image pull and container deployment
 - Health check waits
 
 **Key Tasks**:
+- Use `apisix_api_key` / `apisix_bearer_token`, or generate them into `credentials/<inventory_hostname>/apisix/` on the control machine
 - Create config directories
-- Deploy etcd for configuration storage
-- Deploy APISIX gateway container
-- Configure networking and ports
+- Render `config.yaml` and `apisix.yaml` (`apisix.yaml` holds the credentials: owner root, group 636, mode 0640)
+- Remove the `eth-ansible-apisix-etcd` container left by earlier versions
+- Deploy APISIX gateway container (ports 9080 and 9443)
 
 ---
 
@@ -25,40 +27,37 @@
 **Purpose**: APISIX main configuration template  
 **Contains**:
 - APISIX node listener configuration
-- Admin API settings
-- etcd connection configuration
-- Plugin settings
-- Prometheus metrics configuration
+- Standalone mode (`deployment.role: data_plane`, `config_provider: yaml`); no etcd, no Admin API
+- Error log settings
+- Prometheus metrics configuration (port 9091)
 
 **Variables Used**:
-- `{{ apisix_admin_key }}`
-- `{{ apisix_etcd_container_name }}`
+- `{{ apisix_enable_ipv6 }}` (optional, default `true`)
 
 ---
 
 #### 3. `roles/ethereum_home_staking/templates/apisix-routes.yaml.j2` (NEW)
-**Purpose**: APISIX routes and forward-auth configuration  
+**Purpose**: APISIX standalone configuration (`conf/apisix.yaml`): routes, consumers and authentication  
 **Contains**:
-- Route definitions for /execution/* and /consensus/*
-- Forward-auth plugin configuration
+- Consumers `api_key_client` (key-auth key = `apisix_api_key`) and `bearer_token_client` (key = `Bearer ` + `apisix_bearer_token`)
+- Plugin config `client-auth`: `multi-auth` with two `key-auth` entries (`X-API-Key` and `Authorization` headers, `hide_credentials: true`)
+- Route definitions for /execution/* and /consensus/* (using `client-auth`)
 - Proxy-rewrite rules
 - Health check endpoints
-- Built-in auth service (Lua function)
+- `#END` marker, which APISIX requires at the end of the file
 
 **Routes Configured**:
 - `execution-rpc`: Nethermind JSON-RPC endpoint
 - `consensus-api`: Lighthouse HTTP API endpoint
 - `health`: Consensus health check (no auth)
 - `execution-health`: Execution health check (no auth)
-- `auth-service`: Authentication validation endpoint
 
 **Variables Used**:
 - `{{ execution_docker_container_name }}`
 - `{{ consensus_docker_container_name }}`
 - `{{ eth_ansible_execution_1_rpc_port }}`
 - `{{ consensus_client_http_api_port }}`
-- `{{ apisix_api_key }}`
-- `{{ apisix_bearer_token }}`
+- `{{ apisix_api_key_resolved }}` / `{{ apisix_bearer_token_resolved }}` (set by `roles/ethereum_home_staking/tasks/apisix.yml` from `apisix_api_key` / `apisix_bearer_token` or the generated values)
 
 ---
 
@@ -70,30 +69,19 @@
 ```yaml
 # APISIX API Gateway Vars
 apisix_enabled: true
-apisix_image: "apache/apisix:3.14.1-debian"
-apisix_etcd_image: "bitnami/etcd:3.5.11"
+apisix_image: "apache/apisix:3.19.0-debian"
 apisix_container_name: "eth-ansible-apisix"
+# etcd is no longer used (APISIX runs in standalone mode); the old container is removed on deploy.
 apisix_etcd_container_name: "eth-ansible-apisix-etcd"
 apisix_config_dir: "/root/.eth-staking/config/apisix"
-apisix_data_dir: "/data/apisix"
 
 # APISIX Ports
 apisix_gateway_port: 9080
-apisix_admin_port: 9180
 apisix_https_port: 9443
 apisix_prometheus_port: 9091
-
-# APISIX Authentication (Override in secrets!)
-apisix_admin_key: "changeme-admin-key-{{ ansible_hostname }}"
-apisix_api_key: "changeme-api-key-{{ ansible_hostname }}"
-apisix_bearer_token: "changeme-bearer-token-{{ ansible_hostname }}"
-
-# APISIX Auth Service Configuration
-apisix_enable_auth_service: true
-apisix_auth_service_host: "{{ apisix_container_name }}"
-apisix_auth_service_port: 9080
-apisix_allow_degradation: false
 ```
+
+`apisix_api_key` and `apisix_bearer_token` are deliberately not defined here: when they are unset, `roles/ethereum_home_staking/tasks/apisix.yml` generates random ones. Set them in host_vars/secrets to choose your own.
 
 ---
 
@@ -125,12 +113,11 @@ apisix_allow_degradation: false
 
 #### 6. `example.apisix-secrets.yml` (NEW)
 **Purpose**: Example secrets file template  
-**Contains**: Example secure keys for:
-- `apisix_admin_key`
+**Contains**: Commented-out, optional entries for:
 - `apisix_api_key`
 - `apisix_bearer_token`
 
-**Usage**: Copy to secrets.yml and replace with actual secure values
+**Usage**: Copy the entries to secrets.yml and set real values, or leave them unset to have Ansible generate them
 
 ---
 
@@ -146,9 +133,9 @@ apisix_allow_degradation: false
 **Purpose**: Standalone playbook for deploying only APISIX  
 **Use Case**: Deploy/update APISIX without touching other components  
 **Features**:
-- Load host and default variables
-- Deploy APISIX and etcd
-- Display post-deployment information
+- Load default, main and host variables
+- Deploy APISIX
+- Display post-deployment information, including where the generated credentials are stored
 
 **Usage**:
 ```bash
@@ -252,11 +239,10 @@ ansible-playbook -i inventory playbooks/apisix-only.yml
 
 #### 15. `examples/apisix-usage.sh` (NEW)
 **Purpose**: Collection of working curl examples  
-**Contains**: 16 example API calls demonstrating:
+**Contains**: 15 example API calls demonstrating:
 - Health checks (no auth)
 - Consensus API calls (with auth)
 - Execution API calls (with auth)
-- Admin API calls
 - Metrics access
 - Error scenarios
 
@@ -269,16 +255,15 @@ ansible-playbook -i inventory playbooks/apisix-only.yml
 
 #### 16. `examples/verify-apisix.sh` (NEW)
 **Purpose**: Automated deployment verification  
-**Contains**: 9 automated tests:
+**Contains**: 8 automated tests:
 1. APISIX container running check
-2. etcd container running check
-3. Health endpoint test (no auth)
-4. Execution health test (no auth)
-5. Authentication protection test
-6. Authenticated access test (if key provided)
-7. Execution client access test
-8. Prometheus metrics test
-9. Admin API test
+2. Health endpoint test (no auth)
+3. Execution health test (no auth)
+4. Authentication protection test (expects 401)
+5. Authenticated access test (if key provided)
+6. Wrong API key rejected test (if key provided)
+7. Execution client access test (if key provided)
+8. Prometheus metrics test (inside the container; port 9091 is not published)
 
 **Usage**:
 ```bash
@@ -295,17 +280,25 @@ ansible-playbook -i inventory playbooks/apisix-only.yml
 ```
 roles/ethereum_home_staking/templates/apisix-config.yaml.j2
     ↓ (rendered with vars from roles/ethereum_home_staking/defaults/main.yml)
-→ /root/.eth-staking/config/apisix/config.yaml
+→ /root/.eth-staking/config/apisix/apisix/config.yaml
     ↓ (mounted to container)
 → APISIX container: /usr/local/apisix/conf/config.yaml
 ```
 
 ```
 roles/ethereum_home_staking/templates/apisix-routes.yaml.j2
-    ↓ (rendered with vars)
-→ /root/.eth-staking/config/apisix/apisix.yaml
+    ↓ (rendered with vars and the resolved credentials)
+→ /root/.eth-staking/config/apisix/apisix/apisix.yaml   (root:636, mode 0640)
     ↓ (mounted to container)
 → APISIX container: /usr/local/apisix/conf/apisix.yaml
+```
+
+```
+apisix_api_key / apisix_bearer_token (host_vars or secrets.yml)
+    or, if unset, credentials/<inventory_hostname>/apisix/{api_key,bearer_token}
+    (generated on the control machine, gitignored)
+    ↓ (roles/ethereum_home_staking/tasks/apisix.yml)
+→ consumers in apisix.yaml
 ```
 
 ### Deployment Flow
@@ -316,7 +309,7 @@ roles/ethereum_home_staking/tasks/apisix.yml
     ↓ (uses templates)
 roles/ethereum_home_staking/templates/apisix-*.j2
     ↓ (reads variables)
-roles/ethereum_home_staking/defaults/main.yml + secrets.yml
+roles/ethereum_home_staking/defaults/main.yml + roles/ethereum_home_staking/vars/main.yml + host_vars/secrets.yml
 ```
 
 ### Documentation Hierarchy
@@ -331,11 +324,10 @@ README.md (overview + quick setup)
 
 ## Variable Dependencies
 
-### Required Variables (Must be set in secrets.yml)
+### Credential Variables (optional; generated if unset)
 ```yaml
-apisix_api_key          # Used in: roles/ethereum_home_staking/templates/apisix-routes.yaml.j2
-apisix_bearer_token     # Used in: roles/ethereum_home_staking/templates/apisix-routes.yaml.j2
-apisix_admin_key        # Used in: roles/ethereum_home_staking/templates/apisix-config.yaml.j2
+apisix_api_key          # Used in: roles/ethereum_home_staking/templates/apisix-routes.yaml.j2 (via apisix_api_key_resolved)
+apisix_bearer_token     # Used in: roles/ethereum_home_staking/templates/apisix-routes.yaml.j2 (via apisix_bearer_token_resolved)
 ```
 
 ### Container Name Variables (Used across templates)
@@ -343,7 +335,7 @@ apisix_admin_key        # Used in: roles/ethereum_home_staking/templates/apisix-
 execution_docker_container_name    # From: roles/ethereum_home_staking/vars/main.yml
 consensus_docker_container_name    # From: roles/ethereum_home_staking/vars/main.yml
 apisix_container_name              # From: roles/ethereum_home_staking/vars/main.yml
-apisix_etcd_container_name         # From: roles/ethereum_home_staking/vars/main.yml
+apisix_etcd_container_name         # From: roles/ethereum_home_staking/vars/main.yml (only used to remove the old etcd container)
 ```
 
 ### Port Variables (Used in routing)
@@ -351,14 +343,14 @@ apisix_etcd_container_name         # From: roles/ethereum_home_staking/vars/main
 eth_ansible_execution_1_rpc_port   # From: roles/ethereum_home_staking/vars/main.yml
 consensus_client_http_api_port     # From: roles/ethereum_home_staking/vars/main.yml
 apisix_gateway_port                # From: roles/ethereum_home_staking/defaults/main.yml
-apisix_admin_port                  # From: roles/ethereum_home_staking/defaults/main.yml
+apisix_https_port                  # From: roles/ethereum_home_staking/defaults/main.yml
 ```
 
 ## Integration Points
 
 ### With Existing Ansible Role
 - **Docker Network**: Uses existing `eth-staking-network-net`
-- **Monitoring**: Exports metrics to existing Prometheus
+- **Monitoring**: Exposes metrics that the existing Prometheus can scrape (same Docker network)
 - **Container Naming**: Follows existing `eth-ansible-*` convention
 - **Directory Structure**: Uses existing `.eth-staking/config` pattern
 
@@ -368,7 +360,7 @@ apisix_admin_port                  # From: roles/ethereum_home_staking/defaults/
 - **Network**: All containers communicate via bridge network
 
 ### With Monitoring Stack
-- **Prometheus**: Metrics on port 9091
+- **Prometheus**: Metrics on port 9091 (Docker network only; add a scrape job for `eth-ansible-apisix:9091`)
 - **Grafana**: Can add APISIX as datasource
 - **Alerts**: Can integrate APISIX metrics into alerting
 
@@ -409,6 +401,6 @@ apisix_admin_port                  # From: roles/ethereum_home_staking/defaults/
 ---
 
 **Created**: 2025-11-29  
-**Purpose**: APISIX forward-auth integration for Ethereum staking infrastructure  
+**Purpose**: APISIX gateway with key-auth for Ethereum staking infrastructure  
 **Status**: Complete and ready for deployment
 

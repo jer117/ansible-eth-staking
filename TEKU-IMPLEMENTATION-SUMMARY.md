@@ -94,7 +94,7 @@ Teku is configured as an **archive node** with:
 
 - **Name**: `eth-ansible-consensus-1` (same as Lighthouse for easy switching)
 - **Network**: `eth-staking-network-net` (bridge mode)
-- **Image**: `consensys/teku:25.11-arm64` (or amd64)
+- **Image**: `consensys/teku:26.10.3` (multi-arch)
 
 ### Exposed Ports
 
@@ -147,10 +147,10 @@ If `consensus_client` is not specified, **Lighthouse** is used (maintains backwa
 
 | Architecture | Image |
 |--------------|-------|
-| AMD64 | `consensys/teku:25.11` |
-| ARM64 | `consensys/teku:25.11-arm64` |
+| AMD64 | `consensys/teku:26.10.3` |
+| ARM64 | `consensys/teku:26.10.3` (multi-arch image) |
 
-Images are automatically selected based on detected architecture.
+Docker pulls the right architecture automatically.
 
 ## Monitoring
 

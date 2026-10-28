@@ -98,14 +98,9 @@ echo "14. Test Unauthorized Access (should return 401):"
 curl -i "http://${SERVER}:9080/consensus/eth/v1/node/version" 2>&1 | grep -E "HTTP|401|Unauthorized"
 echo ""
 
-# APISIX Admin API examples
-echo "15. List All Routes (requires admin key):"
-echo "curl -H 'X-API-KEY: \${ADMIN_KEY}' http://${SERVER}:9180/apisix/admin/routes"
-echo ""
-
-# Metrics
-echo "16. View APISIX Prometheus Metrics:"
-echo "curl http://${SERVER}:9091/apisix/prometheus/metrics"
+# Metrics (port 9091 is only reachable on the Docker network, not published on the host)
+echo "15. View APISIX Prometheus Metrics (run on the server):"
+echo "docker run --rm --network eth-staking-network-net curlimages/curl -s http://eth-ansible-apisix:9091/apisix/prometheus/metrics"
 echo ""
 
 echo "=== Examples Complete ==="

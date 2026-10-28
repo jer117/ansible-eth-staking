@@ -15,12 +15,13 @@
     checks:
       testhost:
         - {var: nethermind_image, want: "host/nethermind:pinned", layer: "host_vars over default and arch selection"}
-        - {var: apisix_api_key, want: "host-api-key", layer: "host_vars over default"}
+        - {var: lodestar_image, want: "host/lodestar:test", layer: "host_vars over default"}
         - {var: cadvisor_enabled, want: false, layer: "host_vars over default"}
         - {var: mev_boost_enabled, want: "false", layer: "host_vars over default"}
         - {var: charon_enabled, want: "false", layer: "host_vars over default"}
         - {var: validator_graffiti, want: "host-graffiti", extra: "extra-graffiti", layer: "host_vars over group_vars"}
         - {var: cadvisor_image, want: "host/cadvisor:test", layer: "host_vars over default"}
+        - {var: grafana_image, want: "host/grafana:test", layer: "host_vars over default"}
         - {var: telegram_enabled, want: true, layer: "host_vars over default"}
         - {var: teku_heap_size, want: "2g", layer: "group_vars over default"}
         - {var: lighthouse_image, want: "group/lighthouse:test", layer: "group_vars per-arch image"}

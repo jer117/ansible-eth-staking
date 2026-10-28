@@ -9,13 +9,21 @@
 - name: Deploy APISIX API Gateway
   hosts: all
   tasks:
+    # Supports host_vars files named after the host's IP (older setup.py versions
+    # wrote those). Files named after the inventory hostname are loaded by Ansible
+    # automatically.
+    - name: Load host-specific variables
+      ansible.builtin.include_vars:
+        file: "{{ inventory_dir }}/host_vars/{{ ansible_host }}.yml"
+      tags: [always]
+      when: (inventory_dir ~ '/host_vars/' ~ ansible_host ~ '.yml') is file
+
     - name: Display APISIX configuration
       ansible.builtin.debug:
         msg:
           - "APISIX Enabled: {{ apisix_enabled }}"
           - "APISIX Image: {{ apisix_image }}"
           - "Gateway Port: {{ apisix_gateway_port }}"
-          - "Admin Port: {{ apisix_admin_port }}"
           - "Execution Container: {{ execution_docker_container_name }}"
           - "Consensus Container: {{ consensus_docker_container_name }}"
       tags: [always]
@@ -59,8 +67,9 @@
           - "======================================"
           - ""
           - "Gateway URL: http://{{ ansible_host }}:{{ apisix_gateway_port }}"
-          - "Admin API: http://{{ ansible_host }}:{{ apisix_admin_port }}"
-          - "Metrics: http://{{ ansible_host }}:{{ apisix_prometheus_port }}/apisix/prometheus/metrics"
+          - ""
+          - "Client credentials: apisix_api_key / apisix_bearer_token from your vars, or the"
+          - "generated ones in credentials/{{ inventory_hostname }}/apisix/ on this machine."
           - ""
           - "Endpoints:"
           - "  • Health: http://{{ ansible_host }}:{{ apisix_gateway_port }}/health"

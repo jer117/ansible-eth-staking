@@ -5,7 +5,8 @@
 
 # Was defaults/main.yml
 nethermind_image: "host/nethermind:pinned"
-apisix_api_key: "host-api-key"
+lodestar_image: "host/lodestar:test"
+cadvisor_image: "host/cadvisor:test"
 cadvisor_enabled: false
 
 # Was vars/main.yml
@@ -14,7 +15,7 @@ charon_enabled: "false"
 validator_graffiti: "host-graffiti"   # also beats group_vars
 
 # Was vars/monitoring.yml
-cadvisor_image: "host/cadvisor:test"
+grafana_image: "host/grafana:test"
 telegram_enabled: true
 
 # Fixed role vars: these should be ignored (only -e can change them).
