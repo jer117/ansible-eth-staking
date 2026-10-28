@@ -43,7 +43,7 @@ sudo ufw allow 9080/tcp  # APISIX Gateway
 sudo ufw allow 9443/tcp  # APISIX HTTPS
 
 # Monitoring and Management
-sudo ufw allow 3000/tcp  # Grafana and Semaphore UI
+sudo ufw allow 3000/tcp  # Grafana (grafana_port)
 sudo ufw allow 9090/tcp  # Prometheus
 sudo ufw allow 24165/tcp # cAdvisor
 sudo ufw allow 9093/tcp  # AlertManager

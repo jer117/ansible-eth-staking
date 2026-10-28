@@ -61,11 +61,11 @@ grafana_agent_grpc_port: 9095
 # cadvisor_port in defaults.
 cadvisor_internal_port: 8080
 # Not used yet: tasks/monitoring.yml still hardcodes these ports.
+# The Grafana host port is grafana_port in defaults.
 prometheus_port: 9090
 alertmanager_port: 9093
 loki_port: 3100
 node_exporter_port: 9100
-grafana_port: 3000
 
 # Published port mappings built from the ports above
 eth_ansible_execution_1_docker_ports:
