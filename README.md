@@ -9,7 +9,7 @@ Ansible role for eth home stakers.
 - **Web UI**: Semaphore UI for easy Ansible playbook execution
 - **Monitoring**: Grafana, Prometheus, Node Exporter, and cAdvisor
 - **Security**: Firewall, JWT secrets, secure defaults
-- **API Gateway**: Apache APISIX with forward authentication for RPC endpoints
+- **API Gateway**: Apache APISIX with API key / bearer token authentication for RPC endpoints
 - **Automation**: Backups, health checks, resource management, automatic resets
 - **Resource-efficient**: Configurable memory allocation
 
@@ -76,12 +76,12 @@ python3 setup.py
 #
 # Features:
 # - Interactive MEV-Boost relay selection for each network
-# - Support for multiple networks (mainnet, holesky, sepolia, hoodi)
+# - Support for multiple networks (mainnet, sepolia, hoodi)
 # - Pre-configured checkpoint sync URLs
 # - Automated configuration generation
 #
 # The script will create:
-# - secrets.yml with your configuration
+# - host_vars/<server-name>.yml with your configuration (readable only by you)
 # - inventory file with your server information
 
 # Follow the next steps provided by the setup script
@@ -90,6 +90,21 @@ python3 setup.py
 # Run the playbook
 ansible-playbook -i inventory main.yml
 ```
+
+## Configuration
+
+`main.yml` and the playbooks in `playbooks/` apply the role in `roles/ethereum_home_staking/`. Its variables come in two layers:
+
+| File | Contents | Override from host_vars / group_vars? |
+|------|----------|---------------------------------------|
+| `roles/ethereum_home_staking/defaults/main.yml` | Images, feature toggles (`mev_boost_enabled`, `charon_enabled`, `apisix_enabled`, ...), paths, tuning | Yes |
+| `roles/ethereum_home_staking/vars/main.yml` | Container names and ports: the ones the containers use to reach each other, and the published P2P/RPC port mappings | No (only with `-e`) |
+
+Put your settings in `host_vars/<host>.yml` or `group_vars/<group>.yml` next to your inventory instead of editing the role. Ansible only loads `host_vars/<host>.yml` when `<host>` is the host's name in the inventory; `setup.py` uses the server name for both. If an older `setup.py` named your file after the server IP, rename it to the inventory name. Keep secrets in that same host_vars file and encrypt it with `ansible-vault` if you like. Don't pass per-host settings with `-e @secrets.yml`: extra vars apply to every host in the run and override everything, including host_vars and the fixed values.
+
+The `*_enabled` toggles accept `"true"`/`"false"` or YAML booleans.
+
+`tests/precedence/run.sh` checks that host_vars and group_vars override the role defaults.
 
 ## Upgrading from community.docker 3.x
 
@@ -181,20 +196,17 @@ validator_client: "lodestar"  # Options: "lighthouse" or "lodestar"
 
 ## APISIX API Gateway (Optional)
 
-Apache APISIX provides secure, authenticated access to your Ethereum node's RPC endpoints with forward authentication.
+Apache APISIX provides secure, authenticated access to your Ethereum node's RPC endpoints using APISIX's built-in `key-auth` plugin. It runs in file-driven standalone mode: routes and credentials come from a file rendered by Ansible, with no etcd and no Admin API.
 
 ### Quick Setup
 
-1. **Enable APISIX** in your configuration:
+1. **Credentials** (optional): APISIX is enabled by default (`apisix_enabled: true` in `roles/ethereum_home_staking/defaults/main.yml`). Set your own client credentials, or leave them unset and Ansible generates random ones:
 ```yaml
-# In host_vars/<your-host>.yml or vars/main.yml
-apisix_enabled: true
-
-# In secrets.yml - generate secure keys
-apisix_api_key: "your-secure-api-key"
-apisix_bearer_token: "your-secure-bearer-token"
-apisix_admin_key: "your-secure-admin-key"
+# In secrets.yml or host_vars/<your-host>.yml - generate with: openssl rand -hex 32
+apisix_api_key: "<random value>"
+apisix_bearer_token: "<random value>"
 ```
+Generated credentials are stored on the control machine in `credentials/<inventory_hostname>/apisix/api_key` and `.../bearer_token` (next to your inventory file, gitignored).
 
 2. **Deploy APISIX**:
 ```bash
@@ -218,11 +230,11 @@ curl -H "X-API-Key: your-api-key" \
 ```
 
 ### Features
-- ✅ **Forward Authentication**: API Key and Bearer Token support
+- ✅ **Authentication**: API Key (`X-API-Key`) and Bearer Token (`Authorization: Bearer`) support
 - ✅ **Route Protection**: Secure consensus and execution endpoints
-- ✅ **Prometheus Metrics**: Built-in metrics export on port 9091
+- ✅ **Prometheus Metrics**: Built-in metrics export on port 9091 (Docker network only)
 - ✅ **Health Checks**: Unauthenticated health endpoints
-- ✅ **Admin API**: Manage routes dynamically on port 9180
+- ✅ **Config as Code**: Routes and credentials are managed by Ansible; re-run the playbook to change them
 
 ### Documentation
 - **Quick Start**: [QUICKSTART-APISIX.md](QUICKSTART-APISIX.md)

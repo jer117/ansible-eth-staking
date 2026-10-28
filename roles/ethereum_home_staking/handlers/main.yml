@@ -1,0 +1,12 @@
+---
+- name: reload cadvisor
+  systemd:
+    name: cadvisor.service
+    state: restarted
+
+- name: Restart APISIX
+  become: true
+  community.docker.docker_container:
+    name: "{{ apisix_container_name }}"
+    state: started
+    restart: true

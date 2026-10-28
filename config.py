@@ -28,33 +28,6 @@ mainnet_relay_options = [
     }
 ]
 
-holesky_relay_options = [
-    {
-        'name': 'Aestus',
-        'url': 'https://0xab78bf8c781c58078c3beb5710c57940874dd96aef2835e7742c866b4c7c0406754376c2c8285a36c630346aa5c5f833@holesky.aestus.live'
-    },
-    {
-        'name': 'Ultra Sound',
-        'url': 'https://0xb1559beef7b5ba3127485bbbb090362d9f497ba64e177ee2c8e7db74746306efad687f2cf8574e38d70067d40ef136dc@relay-stag.ultrasound.money'
-    },
-    {
-        'name': 'Flashbots',
-        'url': 'https://0xafa4c6985aa049fb79dd37010438cfebeb0f2bd42b115b89dd678dab0670c1de38da0c4e9138c9290a398ecd9a0b3110@boost-relay-holesky.flashbots.net'
-    },
-    {
-        'name': 'bloXroute',
-        'url': 'https://0x821f2a65afb70e7f2e820a925a9b4c80a159620582c1766b1b09729fec178b11ea22abb3a51f07b288be815a1a2ff516@bloxroute.holesky.blxrbdn.com'
-    },
-    {
-        'name': 'Eden Network',
-        'url': 'https://0xb1d229d9c21298a87846c7022ebeef277dfc321fe674fa45312e20b5b6c400bfde9383f801848d7837ed5fc449083a12@relay-holesky.edennetwork.io'
-    },
-    {
-        'name': 'Titan Relay',
-        'url': 'https://0xaa58208899c6105603b74396734a6263cc7d947f444f396a90f7b7d3e65d102aec7e5e5291b27e08d02c50a050825c2f@holesky.titanrelay.xyz'
-    }
-]
-
 sepolia_relay_options = [
     {
         'name': 'Flashbots',
@@ -94,12 +67,6 @@ mainnet_sync_urls = [
     ("Nimbus", "http://testing.mainnet.beacon-api.nimbus.team"),
 ]
 
-holesky_sync_urls = [
-    ("BEACONSTATE", "https://holesky.beaconstate.info"),
-    ("EF DevOps", "https://checkpoint-sync.holesky.ethpandaops.io"),
-    ("Lodestar", "https://beaconstate-holesky.chainsafe.io"),
-]
-
 sepolia_sync_urls = [
     ("Beaconstate", "https://sepolia.beaconstate.info"),
     ("Lodestar", "https://beaconstate-sepolia.chainsafe.io"),
@@ -111,17 +78,25 @@ hoodi_sync_urls = [
     ("ATTESTANT", "https://hoodi-checkpoint-sync.attestant.io"),
 ]
 
+# Holesky was shut down and is no longer supported by Lodestar, Charon or Nethermind.
+RELAY_OPTIONS = {
+    'mainnet': mainnet_relay_options,
+    'sepolia': sepolia_relay_options,
+    'hoodi': hoodi_relay_options
+}
+
+SYNC_URLS = {
+    'mainnet': mainnet_sync_urls,
+    'sepolia': sepolia_sync_urls,
+    'hoodi': hoodi_sync_urls
+}
+
 def get_relay_urls(network, selected_relays=None):
     """
     Get relay URLs for the specified network.
     If selected_relays is provided, only return those specific relays.
     """
-    relay_options = {
-        'mainnet': mainnet_relay_options,
-        'holesky': holesky_relay_options,
-        'sepolia': sepolia_relay_options,
-        'hoodi': hoodi_relay_options
-    }.get(network.lower(), [])
+    relay_options = RELAY_OPTIONS.get(network.lower(), [])
     
     if not selected_relays:
         return ','.join(relay['url'] for relay in relay_options)
@@ -135,12 +110,7 @@ def get_relay_urls(network, selected_relays=None):
 
 def get_sync_urls(network):
     """Get checkpoint sync URLs for the specified network."""
-    return {
-        'mainnet': mainnet_sync_urls,
-        'holesky': holesky_sync_urls,
-        'sepolia': sepolia_sync_urls,
-        'hoodi': hoodi_sync_urls
-    }.get(network.lower(), [])
+    return SYNC_URLS.get(network.lower(), [])
 
 import os
 import yaml

@@ -15,8 +15,12 @@ EXISTING_COUNT=0
 for f in /home/charon/validator_keys/keystore-*.json; do
     echo "Importing key ${f}"
 
-    # Extract pubkey from keystore file
-    PUBKEY="0x$(grep '"pubkey"' "$f" | awk -F'"' '{print $4}')"
+    # Read the pubkey with a real JSON parser (the image's Node.js) instead of grep/awk,
+    # which only works if the keystore happens to be pretty-printed.
+    if ! PUBKEY="0x$(node -p 'require(process.argv[1]).pubkey.replace(/^0x/, "")' "$f")"; then
+        echo "Failed to read pubkey from ${f}" >&2
+        exit 1
+    fi
 
     PUBKEY_DIR="${KEYSTORES_DIR}/${PUBKEY}"
 

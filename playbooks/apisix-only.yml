@@ -1,28 +1,23 @@
 ---
 # Playbook to deploy only APISIX API Gateway
 # Usage: ansible-playbook -i inventory playbooks/apisix-only.yml
+#
+# Variables come from roles/ethereum_home_staking (imported below through
+# playbooks/roles, a symlink to ../roles; importing makes its defaults and vars
+# available to every task in this play).
+# Override them in host_vars/ or group_vars/ as for main.yml.
 
-- hosts: all
+- name: Deploy APISIX API Gateway
+  hosts: all
   tasks:
-    - name: Check if host vars file exists
-      ansible.builtin.stat:
-        path: "host_vars/{{ ansible_host }}.yml"
-      register: host_vars_file
-      tags: [always]
-
+    # Supports host_vars files named after the host's IP (older setup.py versions
+    # wrote those). Files named after the inventory hostname are loaded by Ansible
+    # automatically.
     - name: Load host-specific variables
       ansible.builtin.include_vars:
-        file: "host_vars/{{ ansible_host }}.yml"
+        file: "{{ inventory_dir }}/host_vars/{{ ansible_host }}.yml"
       tags: [always]
-      when: host_vars_file.stat.exists
-
-    - name: Include main vars
-      ansible.builtin.include_vars: vars/main.yml
-      tags: [always]
-
-    - name: Include default vars
-      ansible.builtin.include_vars: defaults/main.yml
-      tags: [always]
+      when: (inventory_dir ~ '/host_vars/' ~ ansible_host ~ '.yml') is file
 
     - name: Display APISIX configuration
       ansible.builtin.debug:
@@ -30,7 +25,6 @@
           - "APISIX Enabled: {{ apisix_enabled }}"
           - "APISIX Image: {{ apisix_image }}"
           - "Gateway Port: {{ apisix_gateway_port }}"
-          - "Admin Port: {{ apisix_admin_port }}"
           - "Execution Container: {{ execution_docker_container_name }}"
           - "Consensus Container: {{ consensus_docker_container_name }}"
       tags: [always]
@@ -60,8 +54,10 @@
         state: present
 
     - name: Import APISIX tasks
-      ansible.builtin.import_tasks: ../tasks/apisix.yml
-      when: apisix_enabled | default(false)
+      ansible.builtin.import_role:
+        name: ethereum_home_staking
+        tasks_from: apisix
+      when: apisix_enabled | bool
       tags: [apisix]
 
     - name: Display post-deployment information
@@ -72,8 +68,9 @@
           - "======================================"
           - ""
           - "Gateway URL: http://{{ ansible_host }}:{{ apisix_gateway_port }}"
-          - "Admin API: http://{{ ansible_host }}:{{ apisix_admin_port }}"
-          - "Metrics: http://{{ ansible_host }}:{{ apisix_prometheus_port }}/apisix/prometheus/metrics"
+          - ""
+          - "Client credentials: apisix_api_key / apisix_bearer_token from your vars, or the"
+          - "generated ones in credentials/{{ inventory_hostname }}/apisix/ on this machine."
           - ""
           - "Endpoints:"
           - "  • Health: http://{{ ansible_host }}:{{ apisix_gateway_port }}/health"
@@ -88,12 +85,4 @@
           - ""
           - "======================================"
       tags: [always]
-
-  handlers:
-    - name: Restart APISIX
-      become: true
-      community.docker.docker_container:
-        name: "{{ apisix_container_name }}"
-        state: started
-        restart: true
-
+# The "Restart APISIX" handler comes from the role.

@@ -1,10 +1,11 @@
 ---
 roles:
   - name: geerlingguy.docker
-    version: 6.1.0
+    version: 8.0.0
 
 collections:
   # 5.x needs ansible-core >= 2.17 and works with current requests/urllib3/docker
   # on the target. 3.x fails with requests >= 2.32 ("Not supported URL scheme http+docker").
+  # Documentation links that used to live in this file are in README.md (References).
   - name: community.docker
     version: 5.4.0
