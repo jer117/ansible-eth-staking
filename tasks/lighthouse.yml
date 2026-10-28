@@ -83,7 +83,7 @@
       --suggested-fee-recipient {{ withdrawal_account_address }}
       --network {{ network }}
       --disable-backfill-rate-limiting
-      --reconstruct-historic-states
+      --archive
       --historic-state-cache-size=18
       --shuffling-cache-size {{ consensus_shuffling_cache_size | default('64') }}
       --state-cache-size {{ consensus_state_cache_size | default('256') }}

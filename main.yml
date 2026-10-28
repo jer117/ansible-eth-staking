@@ -20,7 +20,6 @@
         nethermind_image: "{{ nethermind_image_arm64 if ansible_architecture == 'aarch64' else nethermind_image_amd64 }}"
         lighthouse_image: "{{ lighthouse_image_arm64 if ansible_architecture == 'aarch64' else lighthouse_image_amd64 }}"
         teku_image: "{{ teku_image_arm64 if ansible_architecture == 'aarch64' else teku_image_amd64 }}"
-        apisix_etcd_image: "{{ apisix_etcd_image_arm64 if ansible_architecture == 'aarch64' else apisix_etcd_image_amd64 }}"
       tags: [always]
 
     - name: Display detected architecture and selected images
@@ -30,7 +29,6 @@
           - "Selected Nethermind image: {{ nethermind_image }}"
           - "Selected Lighthouse image: {{ lighthouse_image }}"
           - "Selected Teku image: {{ teku_image }}"
-          - "Selected APISIX etcd image: {{ apisix_etcd_image }}"
           - "Consensus client: {{ consensus_client }}"
           - "APISIX enabled: {{ apisix_enabled | default(false) }}"
       tags: [always]
@@ -66,7 +64,7 @@
       tags: [always]
 
     - name: Create Docker network
-      docker_network:
+      community.docker.docker_network:
         name: eth-staking-network-net
         state: present
 

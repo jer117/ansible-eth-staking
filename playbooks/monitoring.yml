@@ -4,7 +4,7 @@
   become: true
   vars_files:
     - ../defaults/main.yml
-    - ../defaults/monitoring.yml
+    - ../vars/monitoring.yml
     - ../vars/main.yml
     - ../secrets.yml
   
