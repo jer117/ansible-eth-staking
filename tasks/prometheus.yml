@@ -1,7 +1,25 @@
 ---
+{#
+  Prometheus server config, rendered by the "Task copy prometheus.yml" task in
+  tasks/monitoring.yml. It lives in tasks/ (not templates/) because Ansible resolves
+  `template: src: prometheus.yml` relative to the calling task file first. This is the
+  only Prometheus config in the repo.
+#}
 global:
   scrape_interval: 15s
+  evaluation_interval: 15s
 
+# templates/alert_rules.yml is rendered into this directory (mounted at /etc/prometheus).
+rule_files:
+  - /etc/prometheus/rules/*.yml
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        # Container name of the "Start alertmanager" task in tasks/monitoring.yml.
+        - targets: ['alertmanager:9093']
+
+# Job names here are referenced by templates/alert_rules.yml; keep them in sync.
 scrape_configs:
   - job_name: 'prometheus'
     static_configs:
@@ -20,6 +38,13 @@ scrape_configs:
     static_configs:
       - targets: ["{{ consensus_docker_container_name }}:{{ consensus_monitoring_port }}"]
 
+{% if validators | default([]) | selectattr('enabled', 'eq', true) | list | length > 0 %}
+  # Same condition main.yml uses to deploy the validator client.
+  - job_name: "{{ role }}-validator"
+    static_configs:
+      - targets: ["{{ validator_container_name }}:{{ validator_monitoring_port }}"]
+
+{% endif %}
   - job_name: 'cadvisor'
     static_configs:
       - targets: ['cadvisor:{{ cadvisor_internal_port }}']

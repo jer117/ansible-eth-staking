@@ -187,9 +187,10 @@ def main():
     
     # Telegram notifications (optional)
     enable_telegram = get_boolean_input("\nDo you want to set up Telegram notifications?", False)
+    config["telegram_enabled"] = enable_telegram
     if enable_telegram == "true":
         config["telegram_bot_token"] = input("Enter Telegram bot token: ")
-        config["telegram_chat_id"] = input("Enter Telegram chat ID: ")
+        config["telegram_chat_id"] = input("Enter Telegram chat ID (numeric, e.g. -1001234567890): ")
     else:
         config["telegram_bot_token"] = ""
         config["telegram_chat_id"] = ""

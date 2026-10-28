@@ -69,6 +69,19 @@
     mode: "0644"
   register: alertrules_cfg
 
+# Alertmanager refuses to start with a bad Telegram config, so catch it here instead.
+- name: Check Telegram alert settings
+  ansible.builtin.assert:
+    that:
+      - telegram_bot_token | default('') | string | length > 0
+      - telegram_chat_id | default('') | string is match('^-?[0-9]+$')
+    fail_msg: >-
+      telegram_enabled is true, so Alertmanager needs telegram_bot_token and a numeric
+      telegram_chat_id (for example -1001234567890). Set both in your host_vars, or set
+      telegram_enabled to false to keep alerts in the Alertmanager UI only.
+    quiet: true
+  when: telegram_enabled | default(false) | bool
+
 - name: Copy alertmanager config
   template:
     src: alertmanager.yml

@@ -212,6 +212,22 @@ curl -H "X-API-Key: your-api-key" \
 - **Full Guide**: [README-APISIX.md](README-APISIX.md)
 - **Usage Examples**: [examples/apisix-usage.sh](examples/apisix-usage.sh)
 
+## Alerts
+
+Prometheus evaluates the rules in [templates/alert_rules.yml](templates/alert_rules.yml) and sends firing alerts to Alertmanager. Out of the box nothing is sent anywhere: alerts are listed at `http://<server>:9090/alerts` and in the Alertmanager UI at `http://<server>:9093`.
+
+To get alerts in Telegram, add this to `host_vars/<your-host>.yml` (`python3 setup.py` does it for you if you answer yes to Telegram):
+
+```yaml
+telegram_enabled: "true"
+telegram_bot_token: "123456789:your-bot-token"   # from @BotFather
+telegram_chat_id: "-1001234567890"              # numeric chat ID; add the bot to the chat first
+```
+
+The play stops with an error if `telegram_enabled` is true but the token or a numeric chat ID is missing. To use another channel (Slack, Discord, email, webhook), add a receiver in [templates/alertmanager.yml](templates/alertmanager.yml).
+
+Rules: high CPU, memory, disk IO and disk space; execution client, beacon node and validator client down (the validator rule only exists when a validator is enabled).
+
 ## Debugging Commands
 
 ### Check Execution Client Sync Status

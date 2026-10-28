@@ -1,25 +1,50 @@
+{#
+  Prometheus alert rules, rendered by the "Copy alert rules" task in tasks/monitoring.yml into
+  the directory that tasks/prometheus.yml loads via rule_files. Prometheus template
+  expressions ({{ $labels.x }}, {{ $value }}) are wrapped in raw blocks so Ansible leaves them
+  alone. Job names must match the scrape jobs in tasks/prometheus.yml.
+#}
+{% set execution_job = role ~ '-op-node-exporter' %}
+{% set consensus_job = role ~ '-exporter' %}
+{% set validator_job = role ~ '-validator' %}
+{% set validator_enabled = validators | default([]) | selectattr('enabled', 'eq', true) | list | length > 0 %}
 groups:
   - name: ResourceAlerts
     rules:
-      # Memory Alert
+      - alert: HighCPULoad
+        expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 90
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+{%- raw %}
+          summary: "High CPU load on {{ $labels.instance }}"
+          description: "CPU usage has been above 90% for 15 minutes (current value: {{ $value | printf \"%.1f\" }}%)"
+{% endraw %}
+
       - alert: HighMemoryUsage
         expr: 100 - ((node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100) > 85
         for: 5m
         labels:
           severity: warning
         annotations:
-          summary: "High Memory Usage on {{ '{{' }} $labels.instance {{ '}}' }}"
-          description: "Memory usage is above 85% (current value: {{ '{{' }} $value {{ '}}' }}%)"
+{%- raw %}
+          summary: "High Memory Usage on {{ $labels.instance }}"
+          description: "Memory usage is above 85% (current value: {{ $value | printf \"%.1f\" }}%)"
+{% endraw %}
 
-      # Disk Alerts
       - alert: HighDiskIO
-        expr: node_disk_io_now > 0.9
+        # Fraction of time the device was busy. (node_disk_io_now is the number of requests in
+        # flight at one instant, which is almost always > 0.9 on a node running an EL client.)
+        expr: rate(node_disk_io_time_seconds_total[5m]) > 0.9
         for: 5m
         labels:
           severity: warning
         annotations:
-          summary: "High Disk IO on {{ '{{' }} $labels.instance {{ '}}' }}"
-          description: "Disk IO is very high (current value: {{ '{{' }} $value {{ '}}' }})"
+{%- raw %}
+          summary: "High Disk IO on {{ $labels.instance }} ({{ $labels.device }})"
+          description: "Disk {{ $labels.device }} has been busy more than 90% of the time for 5 minutes (current value: {{ $value | humanizePercentage }})"
+{% endraw %}
 
       - alert: DiskSpaceRunningLow
         expr: 100 - ((node_filesystem_free_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100) > 85
@@ -27,5 +52,44 @@ groups:
         labels:
           severity: warning
         annotations:
-          summary: "Low Disk Space on {{ '{{' }} $labels.instance {{ '}}' }}"
-          description: "Disk space is above 85% used (current value: {{ '{{' }} $value {{ '}}' }}%)"
+{%- raw %}
+          summary: "Low Disk Space on {{ $labels.instance }}"
+          description: "Disk space is above 85% used (current value: {{ $value | printf \"%.1f\" }}%)"
+{% endraw %}
+
+  - name: EthereumClientAlerts
+    rules:
+      - alert: ExecutionClientDown
+        expr: up{job="{{ execution_job }}"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Execution client is down"
+{%- raw %}
+          description: "Prometheus has not been able to scrape the execution client ({{ $labels.instance }}) for 5 minutes."
+{% endraw %}
+
+      - alert: BeaconNodeDown
+        expr: up{job="{{ consensus_job }}"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Beacon node is down"
+{%- raw %}
+          description: "Prometheus has not been able to scrape the beacon node ({{ $labels.instance }}) for 5 minutes."
+{% endraw %}
+{% if validator_enabled %}
+
+      - alert: ValidatorClientDown
+        expr: up{job="{{ validator_job }}"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Validator client is down"
+{%- raw %}
+          description: "Prometheus has not been able to scrape the validator client ({{ $labels.instance }}) for 5 minutes. Validators are probably missing duties."
+{% endraw %}
+{% endif %}
