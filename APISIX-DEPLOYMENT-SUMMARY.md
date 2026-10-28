@@ -241,7 +241,7 @@ sudo ufw allow 9080/tcp
 sudo ufw allow 9443/tcp
 ```
 
-`ufw deny` does not block direct access to the upstream services, because Docker publishes container ports past ufw. The beacon API (5062) is already bound to `127.0.0.1`. Nethermind's RPC (8544) is published on all interfaces; see "Docker bypasses ufw" in [README.md](README.md) for how to restrict it.
+No ufw rule is needed to block direct access to the upstream services: the beacon API (5062) and Nethermind's RPC (8544) are bound to `127.0.0.1`, so they can only be reached from outside through APISIX. Note that `ufw deny` would not block them anyway, because Docker publishes container ports past ufw (see "Docker bypasses ufw" in [README.md](README.md)).
 
 ### 2. Key Management
 

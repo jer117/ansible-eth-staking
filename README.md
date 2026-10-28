@@ -90,22 +90,23 @@ Ports this role publishes on all interfaces:
 | Port(s)                                     | Service                                      | Meant to be public? |
 |---------------------------------------------|----------------------------------------------|---------------------|
 | 30304 tcp/udp, 9000 tcp/udp, 9001 udp, 3610 tcp | P2P (see above)                          | Yes |
-| 8544/tcp                                    | Nethermind JSON-RPC (`admin` and `debug` modules enabled) | No |
-| 8552/tcp                                    | Nethermind Engine API (JWT-protected; the beacon node reaches it over the Docker network) | No |
 | 9080, 9443, 9180/tcp                        | APISIX gateway, HTTPS, Admin API (if `apisix_enabled`) | Gateway and HTTPS only |
 | 3001, 9090, 9093, 24165/tcp                 | Grafana, Prometheus, Alertmanager, cAdvisor  | No |
 
-The beacon API (5062), validator API (5064) and metrics (8009), Charon monitoring (3620), node exporter (9100), Grafana Agent (12345) and APISIX etcd (2379) are bound to `127.0.0.1` and are not reachable from outside.
+These are bound to `127.0.0.1` and are not reachable from outside:
+
+- Nethermind JSON-RPC (8544) and Engine API (8552). The beacon node, APISIX and Prometheus reach Nethermind over the Docker network. For remote RPC access, use the APISIX gateway.
+- Beacon API (5062), validator API (5064) and metrics (8009), Charon monitoring (3620), node exporter (9100), Grafana Agent (12345) and APISIX etcd (2379).
 
 To keep a published port private, either:
 
-1. Bind it to localhost by prefixing the mapping with `127.0.0.1:` in `vars/main.yml`, as the beacon API mapping already does. Anything that reaches the service over the Docker network (APISIX, Prometheus, the beacon node) keeps working.
-2. Or drop outside traffic in the `DOCKER-USER` chain, which Docker evaluates before its own rules. Match on the original destination port, because Docker has already rewritten the destination by the time the packet reaches this chain:
+1. Bind it to localhost by prefixing the mapping with `127.0.0.1:`, as the RPC and beacon API mappings in `vars/main.yml` do. Anything that reaches the service over the Docker network keeps working.
+2. Or drop outside traffic in the `DOCKER-USER` chain, which Docker evaluates before its own rules. Match on the original destination port, because Docker has already rewritten the destination by the time the packet reaches this chain. For example, to keep Prometheus and Alertmanager private:
 
    ```bash
    # Replace eth0 with your internet-facing interface
-   sudo iptables -I DOCKER-USER -i eth0 -p tcp -m conntrack --ctorigdstport 8544 --ctdir ORIGINAL -j DROP
-   sudo iptables -I DOCKER-USER -i eth0 -p tcp -m conntrack --ctorigdstport 8552 --ctdir ORIGINAL -j DROP
+   sudo iptables -I DOCKER-USER -i eth0 -p tcp -m conntrack --ctorigdstport 9090 --ctdir ORIGINAL -j DROP
+   sudo iptables -I DOCKER-USER -i eth0 -p tcp -m conntrack --ctorigdstport 9093 --ctdir ORIGINAL -j DROP
    ```
 
    These rules do not persist across reboots, so re-apply them at boot.
