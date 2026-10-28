@@ -23,7 +23,7 @@
     - "{{ host_config_mount }}/prometheus/rules"
     - "{{ host_config_mount }}/alertmanager"
 
-- name: Create persistent data directories for Prometheus and Grafana
+- name: Create persistent data directories for Prometheus, Alertmanager and Grafana
   become_user: root
   become: true
   ansible.builtin.file:
@@ -34,6 +34,7 @@
     mode: "0750"
   loop:
     - { path: "{{ prometheus_data_dir }}", owner: "{{ prometheus_uid }}", group: "{{ prometheus_gid }}" }
+    - { path: "{{ alertmanager_data_dir }}", owner: "{{ alertmanager_uid }}", group: "{{ alertmanager_gid }}" }
     - { path: "{{ grafana_data_dir }}", owner: "{{ grafana_uid }}", group: "{{ grafana_gid }}" }
   loop_control:
     label: "{{ item.path }}"
@@ -156,9 +157,14 @@
       - "9093:9093"
     volumes:
       - "{{ host_config_mount }}/alertmanager:/etc/alertmanager"
+      - "{{ alertmanager_data_dir }}:/alertmanager"
     command:
       - "--config.file=/etc/alertmanager/alertmanager.yml"
       - "--storage.path=/alertmanager"
+      # Silences and the notification log are written to disk on this interval
+      # and on a clean stop. The default 15m loses up to 15 minutes of
+      # silences when the container is killed (docker rm -f, OOM, power loss).
+      - "--data.maintenance-interval=1m"
 
 - name: Start prometheus container
   become_user: root

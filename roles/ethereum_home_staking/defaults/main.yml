@@ -83,12 +83,15 @@ grafana_agent_image: "grafana/agent:v0.44.8"
 # Persistent monitoring data, bind-mounted so it survives container recreation
 # (image updates, option changes, `docker rm`). Absolute paths on the host.
 prometheus_data_dir: "/data/prometheus"
+alertmanager_data_dir: "/data/alertmanager"  # silences and notification log
 grafana_data_dir: "/data/grafana"
 # The images run as these users, so the data dirs must be owned by them.
-prometheus_uid: 65534  # "nobody" in prom/prometheus
+prometheus_uid: 65534    # "nobody" in prom/prometheus
 prometheus_gid: 65534
-grafana_uid: 472       # "grafana" in grafana/grafana
-grafana_gid: 0         # grafana/grafana runs with the root group
+alertmanager_uid: 65534  # "nobody" in prom/alertmanager
+alertmanager_gid: 65534
+grafana_uid: 472         # "grafana" in grafana/grafana
+grafana_gid: 0           # grafana/grafana runs with the root group
 # Prometheus retention: old data is dropped when either limit is reached.
 # Size needs a unit (e.g. "10GB"); set it to "0" to only limit by time.
 prometheus_retention_time: "30d"
