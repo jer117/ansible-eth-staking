@@ -1,0 +1,108 @@
+---
+# Role defaults: the lowest-precedence variables in Ansible.
+# Override any of these per host in host_vars/<inventory_hostname>.yml, per
+# group in group_vars/<group>.yml, or for a single run with -e.
+# Values that must not change per host (container names, ports the containers
+# use to reach each other) live in ../vars/main.yml instead.
+
+# Features
+# The *_enabled toggles accept "true"/"false" strings (what setup.py writes)
+# or YAML booleans.
+consensus_client: "lighthouse"   # "lighthouse" or "teku" (teku runs in archive mode)
+# validator_client has no default; set "lighthouse" or "lodestar" per host.
+validators: []
+charon_enabled: "true"
+mev_boost_enabled: "true"
+cadvisor_enabled: true
+apisix_enabled: true
+telegram_enabled: false
+
+# Images
+# nethermind_image, lighthouse_image and teku_image are chosen from the
+# *_amd64 / *_arm64 variants based on the host architecture. Override a
+# *_amd64 / *_arm64 variable to change one architecture, or the plain variable
+# to pin one image for the host whatever its architecture.
+nethermind_image_amd64: "nethermind/nethermind:2.2.2"
+nethermind_image_arm64: "jer117/docker-eth-nethermind:2.2.2"
+nethermind_image: "{{ nethermind_image_arm64 if ansible_architecture == 'aarch64' else nethermind_image_amd64 }}"
+
+lighthouse_image_amd64: "sigp/lighthouse:v8.3.2"
+lighthouse_image_arm64: "sigp/lighthouse:v8.3.2-arm64"
+lighthouse_image: "{{ lighthouse_image_arm64 if ansible_architecture == 'aarch64' else lighthouse_image_amd64 }}"
+
+teku_image_amd64: "consensys/teku:26.10.3"
+teku_image_arm64: "consensys/teku:26.10.3"  # multi-arch; Teku no longer publishes -arm64 tags
+teku_image: "{{ teku_image_arm64 if ansible_architecture == 'aarch64' else teku_image_amd64 }}"
+
+lodestar_image: "chainsafe/lodestar:v1.50.1"
+charon_docker_image: "obolnetwork/charon:v1.11.2"
+mev_boost_docker_image: "flashbots/mev-boost:1.12.0"
+# cAdvisor moved its images from gcr.io to ghcr.io after v0.55.
+# renovate: datasource=docker depName=ghcr.io/google/cadvisor versioning=docker
+cadvisor_image: "ghcr.io/google/cadvisor:v0.60.6"
+
+# Directories and mounts
+host_config_mount: ".eth-staking/config"
+
+execution_config_mount: /root/.nethermind/exec_token
+execution_data_mount: /data/execution
+
+consensus_config_mount: /root/.lighthouse/config
+consensus_data_mount: /data/consensus
+
+validator_keys_mount: "/root/.lighthouse/validators"
+validator_data_mount: "/root/.lighthouse/validator-data"
+
+# Execution client
+# Memory limit for the execution client container (45% of host RAM).
+eth_ansible_execution_1_docker_memory: "{{ (ansible_memory_mb.real.total * 0.45) | round | int }}M"
+
+# Consensus client
+# Lighthouse caches; larger values help the rewards/attestations endpoints.
+consensus_shuffling_cache_size: 64  # epochs of shuffling data
+consensus_state_cache_size: 256     # states kept in memory (Lighthouse default: 128)
+# Teku JVM heap and log level
+teku_heap_size: "8g"                # recommended 8g+ for archive nodes
+teku_log_level: "INFO"              # TRACE, DEBUG, INFO, WARN, ERROR
+
+# Validator client
+validator_graffiti: "JerCoffeegang Staking"
+
+# Charon
+charon_relay_address: https://0.relay.obol.tech
+
+# Monitoring
+cadvisor_port: 8080   # host port published for cAdvisor
+prometheus_image: "prom/prometheus:v3.15.1"
+alertmanager_image: "prom/alertmanager:v0.34.1"
+node_exporter_image: "prom/node-exporter:v1.12.1"
+grafana_image: "grafana/grafana:13.3.0"
+# Grafana Agent reached end of life in Nov 2025 (replacement: Grafana Alloy); v0.44.8 is its final release.
+grafana_agent_image: "grafana/agent:v0.44.8"
+
+# APISIX API Gateway
+apisix_image: "apache/apisix:3.19.0-debian"
+apisix_config_dir: "/root/.eth-staking/config/apisix"
+
+# Host ports published by APISIX
+apisix_gateway_port: 9080
+apisix_https_port: 9443
+
+# APISIX client credentials (apisix_api_key, apisix_bearer_token) are deliberately
+# not defined here: when they are unset, tasks/apisix.yml generates random ones
+# under credentials/<host>/apisix/ on the control machine. Set them in host_vars
+# or your secrets to choose your own.
+
+# Not used by any task. Changing these has no effect; they are kept so
+# custom templates that reference them keep working.
+prysm_image: "gcr.io/offchainlabs/prysm/beacon-chain:v7.3.1"
+loki_image: "grafana/loki:2.9.0"
+scripts_dir: /usr/local/bin
+execution_data_dir: "/data/execution"    # the execution data path is execution_data_mount
+consensus_data_dir: "/data/consensus"    # the consensus data path is consensus_data_mount
+consensus_config_dir: "{{ host_config_mount }}/config/consensus"
+consensus_jwt_secret_mount: /root/.lighthouse/config/exec_token
+docker_config_mount: /root/.nethermind
+docker_data_mount: /data
+grafana_admin_password: "{{ GRAFANA_ADMIN_PASSWORD | default('admin') }}"  # Grafana reads GRAFANA_ADMIN_PASSWORD
+apisix_prometheus_port: 9091             # metrics stay inside the Docker network

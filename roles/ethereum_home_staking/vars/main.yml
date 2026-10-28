@@ -1,0 +1,113 @@
+---
+# Fixed values. Role vars outrank host_vars and group_vars, so these cannot
+# be changed per host (only with -e for a single run). Keep this file to
+# values the stack wires together: container names (used as hostnames between
+# containers and in the Prometheus/APISIX config) and the ports containers use
+# to reach each other. Anything a user may want to change belongs in
+# ../defaults/main.yml.
+
+role: ethereum-home-staking
+config: "{{ role }}.config"
+
+# Container names
+execution_docker_container_name: "eth-ansible-execution-1"
+consensus_docker_container_name: "eth-ansible-consensus-1"
+validator_docker_container_name: "eth-ansible-validator-1"
+validator_container_name: "{{ validator_docker_container_name }}"
+execution_container_name: execution
+charon_container_name: charon
+mev_boost_container_name: mev-boost
+apisix_container_name: "eth-ansible-apisix"
+# etcd is no longer used (APISIX runs in standalone mode); the old container is removed on deploy.
+apisix_etcd_container_name: "eth-ansible-apisix-etcd"
+prometheus_name: "prometheus"
+alertmanager_name: "alertmanager"
+loki_name: "loki"
+node_exporter_name: "node-exporter"
+cadvisor_name: "cadvisor"
+grafana_name: "grafana"
+
+# Execution client ports
+# Nethermind uses this port for P2P over TCP and for discovery over UDP
+# (--Network.P2PPort and --Network.DiscoveryPort in tasks/nethermind.yml).
+eth_ansible_execution_1_p2p_port: 30304
+eth_ansible_execution_1_engine_port: 8552
+eth_ansible_execution_1_rpc_port: 8544
+eth_ansible_execution_1_websocket_port: 8548
+execution_monitoring_port: 6060
+execution_auth_port: 8552
+letsencrypt_port: 80
+
+# Consensus client ports
+consensus_monitoring_port: 8081
+consensus_client_http_api_port: 5062
+consensus_client_p2p_port: 9000   # libp2p over TCP + discv5 discovery over UDP
+consensus_client_quic_port: 9001  # libp2p QUIC over UDP (Lighthouse)
+
+# Validator client ports
+validator_client_http_api_port: 5064
+validator_monitoring_port: 8009
+
+# Charon ports
+# Charon's libp2p listens on TCP only. Its QUIC transport is an alpha feature
+# (off by default up to at least v1.11) and only binds UDP when
+# --p2p-udp-address is set, so no UDP port is published for Charon.
+charon_p2p_tcp_port: 3610
+charon_validator_api_port: 3600
+charon_monitoring_port: 3620
+
+# MEV-Boost port
+mev_boost_api_port: 18550
+
+# Monitoring ports
+grafana_agent_http_port: 12345
+grafana_agent_grpc_port: 9095
+# cAdvisor listens on this port inside its container; the host port is
+# cadvisor_port in defaults.
+cadvisor_internal_port: 8080
+# Not used yet: tasks/monitoring.yml still hardcodes these ports.
+prometheus_port: 9090
+alertmanager_port: 9093
+loki_port: 3100
+node_exporter_port: 9100
+grafana_port: 3000
+
+# Published port mappings built from the ports above
+# Docker publishes TCP only unless a mapping ends in /udp, so the P2P port is
+# listed twice: TCP for devp2p connections and UDP for peer discovery.
+# JSON-RPC and the Engine API are bound to localhost: Docker's published ports
+# bypass ufw, and the beacon node, APISIX and Prometheus reach Nethermind by
+# container name over eth-staking-network-net. Use APISIX for remote RPC.
+eth_ansible_execution_1_docker_ports:
+  - "{{ eth_ansible_execution_1_p2p_port }}:{{ eth_ansible_execution_1_p2p_port }}/tcp"
+  - "{{ eth_ansible_execution_1_p2p_port }}:{{ eth_ansible_execution_1_p2p_port }}/udp"
+  - "127.0.0.1:{{ eth_ansible_execution_1_rpc_port }}:{{ eth_ansible_execution_1_rpc_port }}"
+  - "127.0.0.1:{{ eth_ansible_execution_1_engine_port }}:{{ eth_ansible_execution_1_engine_port }}"
+
+# Lighthouse listens on P2P TCP, discovery UDP (same port) and QUIC UDP.
+# Teku listens on P2P TCP and discovery UDP; Teku 26.7+ (the pinned version is
+# newer) also enables QUIC on UDP 9001 by default. consensus_client_quic_port is
+# not passed to Teku, because Teku 25.x rejected the --p2p-quic-port flag.
+beacon_published_ports:
+  - "127.0.0.1:{{ consensus_client_http_api_port }}:{{ consensus_client_http_api_port }}"
+  - "{{ consensus_client_p2p_port }}:{{ consensus_client_p2p_port }}/tcp"
+  - "{{ consensus_client_p2p_port }}:{{ consensus_client_p2p_port }}/udp"
+  - "{{ consensus_client_quic_port }}:{{ consensus_client_quic_port }}/udp"
+
+validator_published_ports:
+  - 127.0.0.1:{{ validator_client_http_api_port }}:{{ validator_client_http_api_port }}
+  - 127.0.0.1:{{ validator_monitoring_port }}:{{ validator_monitoring_port }}
+
+# Network names accepted by the clients
+execution:
+  networks:
+    mainnet: mainnet
+    sepolia: sepolia
+    hoodi: hoodi
+
+# Aliases derived from overridable values
+mev_enabled: "{{ mev_boost_enabled }}"
+mev_nework_name: "{{ network }}"
+
+host_config_files:
+  - config.toml

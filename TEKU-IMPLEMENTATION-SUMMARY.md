@@ -6,13 +6,13 @@ This implementation adds Teku as an alternative consensus client alongside Light
 
 ## Files Created
 
-1. **`tasks/teku.yml`** - Ansible tasks to deploy Teku beacon node
+1. **`roles/ethereum_home_staking/tasks/teku.yml`** - Ansible tasks to deploy Teku beacon node
 2. **`TEKU-CONSENSUS.md`** - Complete documentation for using Teku
 3. **`TEKU-IMPLEMENTATION-SUMMARY.md`** - This file
 
 ## Files Modified
 
-1. **`defaults/main.yml`**
+1. **`roles/ethereum_home_staking/defaults/main.yml`**
    - Added Teku image variables for AMD64 and ARM64
    - Added `consensus_client` variable (lighthouse/teku)
    - Added `teku_heap_size` and `teku_log_level` variables
@@ -22,7 +22,7 @@ This implementation adds Teku as an alternative consensus client alongside Light
    - Added conditional import for Lighthouse vs Teku tasks
    - Updated debug output to show consensus client selection
 
-3. **`vars/main.yml`**
+3. **`roles/ethereum_home_staking/vars/main.yml`**
    - Added Teku-specific configuration variables
 
 4. **`example.secrets.yml`**
@@ -94,14 +94,14 @@ Teku is configured as an **archive node** with:
 
 - **Name**: `eth-ansible-consensus-1` (same as Lighthouse for easy switching)
 - **Network**: `eth-staking-network-net` (bridge mode)
-- **Image**: `consensys/teku:25.11-arm64` (or amd64)
+- **Image**: `consensys/teku:26.10.3` (multi-arch)
 
 ### Exposed Ports
 
 - `5062` - REST API (Beacon API)
 - `8081` - Prometheus metrics
 - `9000` - P2P (TCP for peer connections, UDP for discv5 discovery)
-- `9001` - QUIC (UDP). Published for Lighthouse; Teku 25.11 does not use it, Teku 26.7+ listens on it by default
+- `9001` - QUIC (UDP). Lighthouse uses it; Teku 26.7 and later (including the pinned version) listen on it by default
 
 ### Volumes Mounted
 
@@ -147,10 +147,10 @@ If `consensus_client` is not specified, **Lighthouse** is used (maintains backwa
 
 | Architecture | Image |
 |--------------|-------|
-| AMD64 | `consensys/teku:25.11` |
-| ARM64 | `consensys/teku:25.11-arm64` |
+| AMD64 | `consensys/teku:26.10.3` |
+| ARM64 | `consensys/teku:26.10.3` (multi-arch image) |
 
-Images are automatically selected based on detected architecture.
+Docker pulls the right architecture automatically.
 
 ## Monitoring
 

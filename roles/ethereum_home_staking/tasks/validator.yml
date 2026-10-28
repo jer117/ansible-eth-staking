@@ -34,7 +34,9 @@
     owner: "root"
     group: "root"
     mode: "0600"
-  when: charon_enabled == 'false' and mev_boost_enabled == 'false'
+  when:
+    - not (charon_enabled | bool)
+    - not (mev_boost_enabled | bool)
 
 # Set docker ports
 - name: Set validator docker ports
@@ -50,8 +52,8 @@
     group: "root"
     mode: "0755"
   when:
-    - charon_enabled | string == 'true'
-    - mev_boost_enabled | string == 'true'
+    - charon_enabled | bool
+    - mev_boost_enabled | bool
     - validator_client | string == 'lodestar'
 
 - name: Start/Restart the validator client docker container
@@ -90,7 +92,10 @@
       --metrics-port {{ validator_monitoring_port }}
       --network {{ network }}
       --disable-auto-discover
-  when: charon_enabled == 'false' and mev_boost_enabled == 'false' and validator_client == 'lighthouse'
+  when:
+    - not (charon_enabled | bool)
+    - not (mev_boost_enabled | bool)
+    - validator_client == 'lighthouse'
 
 - name: Start/Restart the Lodestar validator client docker container (with MEV boost)
   become_user: root
@@ -112,12 +117,12 @@
     env:
       BEACON_NODE_ADDRESS: "http://{{ charon_container_name }}:{{ charon_validator_api_port }}"
       NETWORK: "{{ network }}"
-      BUILDER_API_ENABLED: "{{ mev_boost_enabled }}"
+      BUILDER_API_ENABLED: "{{ mev_boost_enabled | bool | lower }}"
       BUILDER_SELECTION: "builderalways"
       WITHDRAWAL_ACCOUNT_ADDRESS: "{{ withdrawal_account_address }}"
       NODE_OPTIONS: "--max-old-space-size=4096"
     entrypoint: /opt/data/run.sh
   when:
-    - charon_enabled | string == 'true'
-    - mev_boost_enabled | string == 'true'
+    - charon_enabled | bool
+    - mev_boost_enabled | bool
     - validator_client | string == 'lodestar'
