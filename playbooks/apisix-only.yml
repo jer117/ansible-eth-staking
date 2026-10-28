@@ -1,29 +1,14 @@
 ---
 # Playbook to deploy only APISIX API Gateway
 # Usage: ansible-playbook -i inventory playbooks/apisix-only.yml
+#
+# Variables come from roles/ethereum_home_staking (imported below, which
+# makes its defaults and vars available to every task in this play).
+# Override them in host_vars/ or group_vars/ as for main.yml.
 
-- hosts: all
+- name: Deploy APISIX API Gateway
+  hosts: all
   tasks:
-    - name: Check if host vars file exists
-      ansible.builtin.stat:
-        path: "host_vars/{{ ansible_host }}.yml"
-      register: host_vars_file
-      tags: [always]
-
-    - name: Load host-specific variables
-      ansible.builtin.include_vars:
-        file: "host_vars/{{ ansible_host }}.yml"
-      tags: [always]
-      when: host_vars_file.stat.exists
-
-    - name: Include main vars
-      ansible.builtin.include_vars: vars/main.yml
-      tags: [always]
-
-    - name: Include default vars
-      ansible.builtin.include_vars: defaults/main.yml
-      tags: [always]
-
     - name: Display APISIX configuration
       ansible.builtin.debug:
         msg:
@@ -60,8 +45,10 @@
         state: present
 
     - name: Import APISIX tasks
-      ansible.builtin.import_tasks: ../tasks/apisix.yml
-      when: apisix_enabled | default(false)
+      ansible.builtin.import_role:
+        name: ../roles/ethereum_home_staking
+        tasks_from: apisix
+      when: apisix_enabled | bool
       tags: [apisix]
 
     - name: Display post-deployment information
@@ -88,12 +75,4 @@
           - ""
           - "======================================"
       tags: [always]
-
-  handlers:
-    - name: Restart APISIX
-      become: true
-      community.docker.docker_container:
-        name: "{{ apisix_container_name }}"
-        state: started
-        restart: true
-
+# The "Restart APISIX" handler comes from the role.

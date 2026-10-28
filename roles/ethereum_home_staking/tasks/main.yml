@@ -1,0 +1,102 @@
+---
+# Variables come from ../defaults/main.yml (overridable from host_vars,
+# group_vars or -e) and ../vars/main.yml (fixed). Nothing is loaded with
+# include_vars or set_fact here: both outrank inventory variables and would
+# silently replace host_vars values.
+
+- name: Display detected architecture and effective configuration
+  ansible.builtin.debug:
+    msg:
+      - "Detected architecture: {{ ansible_architecture }}"
+      - "Selected Nethermind image: {{ nethermind_image }}"
+      - "Selected Lighthouse image: {{ lighthouse_image }}"
+      - "Selected Teku image: {{ teku_image }}"
+      - "Selected APISIX etcd image: {{ apisix_etcd_image }}"
+      - "Consensus client: {{ consensus_client }}"
+      - "Validator client: {{ validator_client | default('not set') }}"
+      - "Charon enabled: {{ charon_enabled | bool }}"
+      - "MEV-Boost enabled: {{ mev_boost_enabled | bool }}"
+      - "APISIX enabled: {{ apisix_enabled | bool }}"
+  tags: [always]
+
+- name: Create directory structure for home staking role
+  become_user: root
+  become: true
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  with_items:
+    - "{{ host_config_mount }}"
+
+- name: Ensure pip is installed
+  become: true
+  ansible.builtin.package:
+    name:
+      - python3-pip
+    state: present
+  tags: [always]
+  ignore_errors: true
+
+- name: Install Python dependencies for Docker modules
+  become: true
+  ansible.builtin.pip:
+    name:
+      - requests
+      - docker
+    state: present
+  tags: [always]
+
+- name: Create Docker network
+  docker_network:
+    name: eth-staking-network-net
+    state: present
+
+- name: Import Lighthouse Consensus Client
+  ansible.builtin.import_tasks: lighthouse.yml
+  when: consensus_client == 'lighthouse'
+  tags: [consensus]
+
+- name: Import Teku Consensus Client
+  ansible.builtin.import_tasks: teku.yml
+  when: consensus_client == 'teku'
+  tags: [consensus]
+
+- name: Include task execution
+  ansible.builtin.import_tasks: nethermind.yml
+  tags: [execution]
+
+# - name: Import charon_leader role
+#   ansible.builtin.import_tasks: charon_leader.yml
+#   tags: [charon-leader]
+#   when: charon_enabled | bool and is_leader == 'true'
+
+- name: Import charon
+  ansible.builtin.import_tasks: charon.yml
+  tags: [charon]
+  when: charon_enabled | bool
+
+- name: Import Validator
+  ansible.builtin.import_tasks: validator.yml
+  when: validators | selectattr('enabled', 'eq', true) | list | length > 0
+  tags: [validator]
+
+- name: Install Cadvisor
+  ansible.builtin.import_tasks: cadvisor.yml
+  tags: cadvisor, always
+
+- name: Include task monitoring
+  ansible.builtin.import_tasks: monitoring.yml
+  tags: monitoring
+
+- name: Import mev-boost tasks
+  ansible.builtin.import_tasks: mev-boost.yml
+  when: mev_boost_enabled | bool
+  tags: [mev]
+
+- name: Import APISIX API Gateway
+  ansible.builtin.import_tasks: apisix.yml
+  when: apisix_enabled | bool
+  tags: [apisix]

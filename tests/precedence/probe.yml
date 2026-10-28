@@ -1,0 +1,27 @@
+---
+# Variable precedence check for roles/ethereum_home_staking.
+# Run it with tests/precedence/run.sh.
+#
+# Both plays load the role's variables without running any of its tasks
+# (when: false), then compare the effective values against checks.yml.
+
+- name: Role applied with roles, like main.yml
+  hosts: all
+  roles:
+    - role: ../../roles/ethereum_home_staking
+      when: false
+  tasks:
+    - name: Check effective values
+      ansible.builtin.include_tasks: checks.yml
+
+- name: Role applied with import_role, like playbooks/*.yml
+  hosts: all
+  tasks:
+    - name: Load the role's variables
+      ansible.builtin.import_role:
+        name: ../../roles/ethereum_home_staking
+        tasks_from: monitoring
+      when: false
+
+    - name: Check effective values
+      ansible.builtin.include_tasks: checks.yml

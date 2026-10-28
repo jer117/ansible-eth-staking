@@ -2,7 +2,7 @@
 galaxy_info:
   galaxy_tags: []
   namespace: jer117 
-  role_name: ethereum-home-staking
+  role_name: ethereum_home_staking
   author: jer117.
   description: Role to install an eth home staking node
   company: jer117.

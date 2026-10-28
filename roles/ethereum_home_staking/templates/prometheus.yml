@@ -62,7 +62,7 @@ scrape_configs:
       instance: "{{ IP }}"
 
   # MEV-Boost metrics (if enabled)
-  {% if mev_boost_enabled == "true" %}
+  {% if mev_boost_enabled | bool %}
   - job_name: 'mev-boost-local'
     static_configs:
       - targets: ['mev-boost:{{ mev_boost_api_port }}']
@@ -72,7 +72,7 @@ scrape_configs:
   {% endif %}
 
   # Charon metrics (if using distributed validator)
-  {% if charon_enabled | string == "true" or charon_enabled == true %}
+  {% if charon_enabled | bool %}
   - job_name: 'charon-local'
     static_configs:
       - targets: ['charon:{{ charon_monitoring_port }}']

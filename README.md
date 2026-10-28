@@ -80,7 +80,7 @@ python3 setup.py
 # - Automated configuration generation
 #
 # The script will create:
-# - secrets.yml with your configuration
+# - host_vars/<server IP>.yml with your configuration
 # - inventory file with your server information
 
 # Follow the next steps provided by the setup script
@@ -89,6 +89,21 @@ python3 setup.py
 # Run the playbook
 ansible-playbook -i inventory main.yml
 ```
+
+## Configuration
+
+`main.yml` and the playbooks in `playbooks/` apply the role in `roles/ethereum_home_staking/`. Its variables come in two layers:
+
+| File | Contents | Override from host_vars / group_vars? |
+|------|----------|---------------------------------------|
+| `roles/ethereum_home_staking/defaults/main.yml` | Images, feature toggles (`mev_boost_enabled`, `charon_enabled`, `apisix_enabled`, ...), paths, tuning, APISIX credentials | Yes |
+| `roles/ethereum_home_staking/vars/main.yml` | Container names and the ports the containers use to reach each other | No (only with `-e`) |
+
+Put your settings in `host_vars/<host>.yml` or `group_vars/<group>.yml` next to your inventory instead of editing the role. Ansible only loads `host_vars/<host>.yml` when `<host>` is the host's name in the inventory: `setup.py` names the file after the server IP and the inventory entry after the server name, so rename one of them to match. If you keep settings in a separate `secrets.yml`, pass it with `-e @secrets.yml`.
+
+The `*_enabled` toggles accept `"true"`/`"false"` or YAML booleans.
+
+`tests/precedence/run.sh` checks that host_vars and group_vars override the role defaults.
 
 # How to generate validator keys.
 - https://hoodi.launchpad.ethereum.org/en/generate-keys
@@ -170,7 +185,7 @@ Apache APISIX provides secure, authenticated access to your Ethereum node's RPC 
 
 1. **Enable APISIX** in your configuration:
 ```yaml
-# In host_vars/<your-host>.yml or vars/main.yml
+# In host_vars/<your-host>.yml
 apisix_enabled: true
 
 # In secrets.yml - generate secure keys

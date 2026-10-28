@@ -1,0 +1,22 @@
+---
+# Each value below should win over the role defaults. Comments say which file
+# the key lived in before the role conversion, when include_vars made the
+# host_vars value lose.
+
+# Was defaults/main.yml
+nethermind_image: "host/nethermind:pinned"
+apisix_api_key: "host-api-key"
+cadvisor_enabled: false
+
+# Was vars/main.yml
+mev_boost_enabled: "false"
+charon_enabled: "false"
+validator_graffiti: "host-graffiti"   # also beats group_vars
+
+# Was vars/monitoring.yml
+cadvisor_image: "host/cadvisor:test"
+telegram_enabled: true
+
+# Fixed role vars: these should be ignored (only -e can change them).
+execution_docker_container_name: "host-value-should-be-ignored"
+eth_ansible_execution_1_rpc_port: 9999

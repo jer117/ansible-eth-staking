@@ -14,7 +14,7 @@
   become: true
   community.docker.docker_container:
     name: cadvisor
-    state: "{{ 'started' if cadvisor_enabled else 'absent' }}"
+    state: "{{ 'started' if cadvisor_enabled | bool else 'absent' }}"
     image: "{{ cadvisor_image }}"
     volumes:
       - /:/rootfs:ro

@@ -4,7 +4,7 @@
 
 ### Core Ansible Implementation
 
-#### 1. `tasks/apisix.yml` (NEW)
+#### 1. `roles/ethereum_home_staking/tasks/apisix.yml` (NEW)
 **Purpose**: Main Ansible task file for deploying APISIX  
 **Contains**:
 - Directory creation for APISIX configs
@@ -21,7 +21,7 @@
 
 ---
 
-#### 2. `templates/apisix-config.yaml.j2` (NEW)
+#### 2. `roles/ethereum_home_staking/templates/apisix-config.yaml.j2` (NEW)
 **Purpose**: APISIX main configuration template  
 **Contains**:
 - APISIX node listener configuration
@@ -36,7 +36,7 @@
 
 ---
 
-#### 3. `templates/apisix-routes.yaml.j2` (NEW)
+#### 3. `roles/ethereum_home_staking/templates/apisix-routes.yaml.j2` (NEW)
 **Purpose**: APISIX routes and forward-auth configuration  
 **Contains**:
 - Route definitions for /execution/* and /consensus/*
@@ -64,7 +64,7 @@
 
 ### Configuration Files
 
-#### 4. `defaults/main.yml` (MODIFIED)
+#### 4. `roles/ethereum_home_staking/defaults/main.yml` (MODIFIED)
 **Purpose**: Default variables for APISIX  
 **Added Variables**:
 ```yaml
@@ -97,8 +97,8 @@ apisix_allow_degradation: false
 
 ---
 
-#### 5. `main.yml` (MODIFIED)
-**Purpose**: Main playbook orchestration  
+#### 5. `roles/ethereum_home_staking/tasks/main.yml` and `handlers/main.yml` (MODIFIED)
+**Purpose**: Role orchestration (applied by `main.yml`)  
 **Changes**:
 - Added APISIX task import
 - Added "Restart APISIX" handler
@@ -106,8 +106,8 @@ apisix_allow_degradation: false
 **New Task**:
 ```yaml
 - name: Import APISIX API Gateway
-  ansible.builtin.import_tasks: tasks/apisix.yml
-  when: apisix_enabled | default(false)
+  ansible.builtin.import_tasks: apisix.yml
+  when: apisix_enabled | bool
   tags: [apisix]
 ```
 
@@ -293,15 +293,15 @@ ansible-playbook -i inventory playbooks/apisix-only.yml
 
 ### Template → Configuration Flow
 ```
-templates/apisix-config.yaml.j2
-    ↓ (rendered with vars from defaults/main.yml)
+roles/ethereum_home_staking/templates/apisix-config.yaml.j2
+    ↓ (rendered with vars from roles/ethereum_home_staking/defaults/main.yml)
 → /root/.eth-staking/config/apisix/config.yaml
     ↓ (mounted to container)
 → APISIX container: /usr/local/apisix/conf/config.yaml
 ```
 
 ```
-templates/apisix-routes.yaml.j2
+roles/ethereum_home_staking/templates/apisix-routes.yaml.j2
     ↓ (rendered with vars)
 → /root/.eth-staking/config/apisix/apisix.yaml
     ↓ (mounted to container)
@@ -312,11 +312,11 @@ templates/apisix-routes.yaml.j2
 ```
 main.yml
     ↓ (includes when apisix_enabled)
-tasks/apisix.yml
+roles/ethereum_home_staking/tasks/apisix.yml
     ↓ (uses templates)
-templates/apisix-*.j2
+roles/ethereum_home_staking/templates/apisix-*.j2
     ↓ (reads variables)
-defaults/main.yml + secrets.yml
+roles/ethereum_home_staking/defaults/main.yml + secrets.yml
 ```
 
 ### Documentation Hierarchy
@@ -333,25 +333,25 @@ README.md (overview + quick setup)
 
 ### Required Variables (Must be set in secrets.yml)
 ```yaml
-apisix_api_key          # Used in: templates/apisix-routes.yaml.j2
-apisix_bearer_token     # Used in: templates/apisix-routes.yaml.j2
-apisix_admin_key        # Used in: templates/apisix-config.yaml.j2
+apisix_api_key          # Used in: roles/ethereum_home_staking/templates/apisix-routes.yaml.j2
+apisix_bearer_token     # Used in: roles/ethereum_home_staking/templates/apisix-routes.yaml.j2
+apisix_admin_key        # Used in: roles/ethereum_home_staking/templates/apisix-config.yaml.j2
 ```
 
 ### Container Name Variables (Used across templates)
 ```yaml
-execution_docker_container_name    # From: defaults/main.yml
-consensus_docker_container_name    # From: defaults/main.yml
-apisix_container_name              # From: defaults/main.yml
-apisix_etcd_container_name         # From: defaults/main.yml
+execution_docker_container_name    # From: roles/ethereum_home_staking/vars/main.yml
+consensus_docker_container_name    # From: roles/ethereum_home_staking/vars/main.yml
+apisix_container_name              # From: roles/ethereum_home_staking/vars/main.yml
+apisix_etcd_container_name         # From: roles/ethereum_home_staking/vars/main.yml
 ```
 
 ### Port Variables (Used in routing)
 ```yaml
-eth_ansible_execution_1_rpc_port   # From: vars/main.yml
-consensus_client_http_api_port     # From: vars/main.yml
-apisix_gateway_port                # From: defaults/main.yml
-apisix_admin_port                  # From: defaults/main.yml
+eth_ansible_execution_1_rpc_port   # From: roles/ethereum_home_staking/vars/main.yml
+consensus_client_http_api_port     # From: roles/ethereum_home_staking/vars/main.yml
+apisix_gateway_port                # From: roles/ethereum_home_staking/defaults/main.yml
+apisix_admin_port                  # From: roles/ethereum_home_staking/defaults/main.yml
 ```
 
 ## Integration Points
@@ -380,9 +380,9 @@ apisix_admin_port                  # From: defaults/main.yml
 - `examples/apisix-usage.sh` - Usage examples
 
 ### For Configuration Changes
-- `templates/apisix-routes.yaml.j2` - Route modifications
-- `templates/apisix-config.yaml.j2` - APISIX settings
-- `defaults/main.yml` - Default values
+- `roles/ethereum_home_staking/templates/apisix-routes.yaml.j2` - Route modifications
+- `roles/ethereum_home_staking/templates/apisix-config.yaml.j2` - APISIX settings
+- `roles/ethereum_home_staking/defaults/main.yml` - Default values
 
 ### For Troubleshooting
 - `README-APISIX.md` - Troubleshooting section

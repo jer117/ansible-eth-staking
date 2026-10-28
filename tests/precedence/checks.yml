@@ -1,0 +1,36 @@
+---
+- name: Assert effective value
+  ansible.builtin.assert:
+    that: (lookup('ansible.builtin.vars', item.var) | string) == (want | string)
+    fail_msg: "{{ item.var }} is '{{ lookup('ansible.builtin.vars', item.var) }}', expected '{{ want }}' ({{ layer }})"
+    success_msg: "{{ item.var }} = '{{ want }}' ({{ layer }})"
+  loop: "{{ checks[inventory_hostname] }}"
+  loop_control:
+    label: "{{ item.var }}"
+  vars:
+    from_extra: "{{ (precedence_extra_vars | default(false)) and 'extra' in item }}"
+    want: "{{ item.extra if from_extra | bool else item.want }}"
+    layer: "{{ '-e over everything' if from_extra | bool else item.layer }}"
+    arch_nethermind: "{{ nethermind_image_arm64 if ansible_architecture == 'aarch64' else nethermind_image_amd64 }}"
+    checks:
+      testhost:
+        - {var: nethermind_image, want: "host/nethermind:pinned", layer: "host_vars over default and arch selection"}
+        - {var: apisix_api_key, want: "host-api-key", layer: "host_vars over default"}
+        - {var: cadvisor_enabled, want: false, layer: "host_vars over default"}
+        - {var: mev_boost_enabled, want: "false", layer: "host_vars over default"}
+        - {var: charon_enabled, want: "false", layer: "host_vars over default"}
+        - {var: validator_graffiti, want: "host-graffiti", extra: "extra-graffiti", layer: "host_vars over group_vars"}
+        - {var: cadvisor_image, want: "host/cadvisor:test", layer: "host_vars over default"}
+        - {var: telegram_enabled, want: true, layer: "host_vars over default"}
+        - {var: teku_heap_size, want: "2g", layer: "group_vars over default"}
+        - {var: lighthouse_image, want: "group/lighthouse:test", layer: "group_vars per-arch image"}
+        - {var: execution_docker_container_name, want: "eth-ansible-execution-1", layer: "fixed role var ignores host_vars"}
+        - {var: eth_ansible_execution_1_rpc_port, want: 8544, extra: 7777, layer: "fixed role var ignores host_vars, yields to -e"}
+      otherhost:
+        - {var: nethermind_image, want: "{{ arch_nethermind }}", layer: "default, chosen by architecture"}
+        - {var: mev_boost_enabled, want: "true", layer: "default"}
+        - {var: charon_enabled, want: "true", layer: "default"}
+        - {var: validator_graffiti, want: "group-graffiti", extra: "extra-graffiti", layer: "group_vars over default"}
+        - {var: teku_heap_size, want: "2g", layer: "group_vars over default"}
+        - {var: execution_docker_container_name, want: "eth-ansible-execution-1", layer: "fixed role var"}
+        - {var: eth_ansible_execution_1_rpc_port, want: 8544, extra: 7777, layer: "fixed role var, yields to -e"}

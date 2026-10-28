@@ -7,12 +7,12 @@ An Ansible role for deploying Apache APISIX as an API Gateway with forward authe
 ### Files Created
 
 #### Ansible Tasks & Templates
-- **`tasks/apisix.yml`**: Main Ansible task file for deploying APISIX and etcd containers
-- **`templates/apisix-config.yaml.j2`**: APISIX main configuration template
-- **`templates/apisix-routes.yaml.j2`**: APISIX routes and forward-auth plugin configuration
+- **`roles/ethereum_home_staking/tasks/apisix.yml`**: Main Ansible task file for deploying APISIX and etcd containers
+- **`roles/ethereum_home_staking/templates/apisix-config.yaml.j2`**: APISIX main configuration template
+- **`roles/ethereum_home_staking/templates/apisix-routes.yaml.j2`**: APISIX routes and forward-auth plugin configuration
 
 #### Configuration Files
-- **`defaults/main.yml`**: Updated with APISIX variables and defaults
+- **`roles/ethereum_home_staking/defaults/main.yml`**: Updated with APISIX variables and defaults
 - **`main.yml`**: Updated to include APISIX deployment task
 - **`example.apisix-secrets.yml`**: Example secure credentials file
 - **`example.env.apisix`**: Environment variables example
@@ -102,7 +102,7 @@ apisix_bearer_token: "your-secure-bearer-token"
 apisix_enabled: true
 ```
 
-### Optional Variables (defaults/main.yml)
+### Optional Variables (roles/ethereum_home_staking/defaults/main.yml)
 
 ```yaml
 # Docker Images
@@ -362,7 +362,7 @@ curl -H "X-API-KEY: your-admin-key" \
 
 1. Generate SSL certificates
 2. Mount certificates to APISIX container
-3. Update `templates/apisix-config.yaml.j2`:
+3. Update `roles/ethereum_home_staking/templates/apisix-config.yaml.j2`:
 
 ```yaml
 apisix:
@@ -373,7 +373,7 @@ apisix:
 
 ### Add Rate Limiting
 
-Update `templates/apisix-routes.yaml.j2`:
+Update `roles/ethereum_home_staking/templates/apisix-routes.yaml.j2`:
 
 ```yaml
 plugins:
