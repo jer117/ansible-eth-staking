@@ -56,7 +56,7 @@ node_exporter_name: "node-exporter"
 # Cadvisor Vars
 cadvisor_enabled: true
 # renovate: datasource=docker depName=gcr.io/cadvisor/cadvisor versioning=docker
-cadvisor_image: gcr.io/cadvisor/cadvisor:v0.49.1
+cadvisor_image: gcr.io/cadvisor/cadvisor:v0.55.1
 # the default CADVISOR_HEALTHCHECK_URL is "http://localhost:8080/healthz"
 # so match it
 cadvisor_internal_port: 8080
