@@ -226,16 +226,16 @@ curl -X POST -H "Content-Type: application/json" --data '{"jsonrpc":"2.0","metho
 ### Check Consensus Client Status
 ```bash
 # Check beacon node sync status
-curl http://localhost:5052/eth/v1/node/syncing
+curl http://localhost:5062/eth/v1/node/syncing
 
 # Check beacon node health
-curl http://localhost:5052/eth/v1/node/health
+curl http://localhost:5062/eth/v1/node/health
 
 # Get current slot
-curl http://localhost:5052/eth/v1/beacon/headers/head
+curl http://localhost:5062/eth/v1/beacon/headers/head
 
 # Check if beacon node is ready for validator duties
-curl http://localhost:5052/eth/v1/node/readiness
+curl http://localhost:5062/eth/v1/node/readiness
 ```
 
 ### Check Charon Status
