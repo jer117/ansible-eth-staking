@@ -106,6 +106,53 @@
   ansible.builtin.set_fact:
     cfg_changed: "{{ prom_cfg.changed | bool or graf_cfg.changed | bool or datasource_cfg.changed | bool or dashboard_cfg.changed | bool or dashboard_files_cfg.changed | bool or alertrules_cfg.changed | bool or alertmanager_cfg.changed | bool }}"
 
+# Prometheus, Alertmanager and Grafana keep their data in named volumes, so it
+# survives when a container is recreated (new image, changed options).
+# Containers created before these volumes existed are stopped once, and their
+# data is copied into the volume. The tasks further down then recreate them.
+- name: Look up monitoring containers that store data
+  become_user: root
+  become: true
+  community.docker.docker_container_info:
+    name: "{{ item.container }}"
+  loop:
+    - { container: "{{ prometheus_name }}", path: /prometheus, volume: "{{ prometheus_data_volume }}" }
+    - { container: alertmanager, path: /alertmanager, volume: "{{ alertmanager_data_volume }}" }
+    - { container: grafana, path: /var/lib/grafana, volume: "{{ grafana_data_volume }}" }
+  register: monitoring_data_containers
+
+- name: Stop monitoring containers whose data is not in a named volume yet
+  become_user: root
+  become: true
+  community.docker.docker_container:
+    name: "{{ item.item.container }}"
+    state: stopped
+  loop: "{{ monitoring_data_containers.results }}"
+  loop_control:
+    label: "{{ item.item.container }}"
+  when:
+    - item.exists
+    - item.item.volume not in (item.container.Mounts | map(attribute='Name', default='') | list)
+
+- name: Copy existing monitoring data into named volumes
+  become_user: root
+  become: true
+  ansible.builtin.shell:
+    cmd: >-
+      set -o pipefail &&
+      docker cp {{ item.item.container }}:{{ item.item.path }}/. - |
+      docker run --rm -i --user root --entrypoint tar
+      -v {{ item.item.volume }}:{{ item.item.path }}
+      {{ item.container.Image }} -x -C {{ item.item.path }}
+    executable: /bin/bash
+  changed_when: true
+  loop: "{{ monitoring_data_containers.results }}"
+  loop_control:
+    label: "{{ item.item.container }}"
+  when:
+    - item.exists
+    - item.item.volume not in (item.container.Mounts | map(attribute='Name', default='') | list)
+
 - name: Start node exporter
   become_user: root
   become: true
@@ -141,6 +188,7 @@
       - "9093:9093"
     volumes:
       - "{{ host_config_mount }}/alertmanager:/etc/alertmanager"
+      - "{{ alertmanager_data_volume }}:/alertmanager"
     command:
       - "--config.file=/etc/alertmanager/alertmanager.yml"
       - "--storage.path=/alertmanager"
@@ -163,6 +211,7 @@
       - "9090:9090"
     volumes:
       - "{{ host_config_mount }}/prometheus:/etc/prometheus"
+      - "{{ prometheus_data_volume }}:/prometheus"
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
@@ -214,3 +263,4 @@
     volumes:
       - "{{ host_config_mount }}/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources"
       - "{{ host_config_mount }}/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards"
+      - "{{ grafana_data_volume }}:/var/lib/grafana"

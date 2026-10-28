@@ -66,7 +66,7 @@
       tags: [always]
 
     - name: Create Docker network
-      docker_network:
+      community.docker.docker_network:
         name: eth-staking-network-net
         state: present
 

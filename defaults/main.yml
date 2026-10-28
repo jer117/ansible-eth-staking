@@ -53,6 +53,11 @@ grafana_agent_grpc_port: 9095
 
 node_exporter_name: "node-exporter"
 
+# Named Docker volumes that keep monitoring data when a container is recreated
+prometheus_data_volume: "prometheus-data"
+alertmanager_data_volume: "alertmanager-data"
+grafana_data_volume: "grafana-data"
+
 # Cadvisor Vars
 cadvisor_enabled: true
 # renovate: datasource=docker depName=gcr.io/cadvisor/cadvisor versioning=docker
