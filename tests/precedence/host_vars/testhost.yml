@@ -16,6 +16,7 @@ validator_graffiti: "host-graffiti"   # also beats group_vars
 
 # Was vars/monitoring.yml
 grafana_image: "host/grafana:test"
+grafana_port: 3001
 telegram_enabled: true
 
 # Fixed role vars: these should be ignored (only -e can change them).

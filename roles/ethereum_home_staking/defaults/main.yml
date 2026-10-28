@@ -73,6 +73,7 @@ charon_relay_address: https://0.relay.obol.tech
 
 # Monitoring
 cadvisor_port: 8080   # host port published for cAdvisor
+grafana_port: 3000    # host port published for the Grafana UI
 prometheus_image: "prom/prometheus:v3.15.1"
 alertmanager_image: "prom/alertmanager:v0.34.1"
 node_exporter_image: "prom/node-exporter:v1.12.1"

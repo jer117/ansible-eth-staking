@@ -21,6 +21,7 @@
         - {var: validator_graffiti, want: "host-graffiti", extra: "extra-graffiti", layer: "host_vars over group_vars"}
         - {var: cadvisor_image, want: "host/cadvisor:test", layer: "host_vars over default"}
         - {var: grafana_image, want: "host/grafana:test", layer: "host_vars over default"}
+        - {var: grafana_port, want: 3001, layer: "host_vars over default"}
         - {var: telegram_enabled, want: true, layer: "host_vars over default"}
         - {var: teku_heap_size, want: "2g", layer: "group_vars over default"}
         - {var: lighthouse_image, want: "group/lighthouse:test", layer: "group_vars per-arch image"}
@@ -32,6 +33,7 @@
         - {var: charon_enabled, want: "true", layer: "default"}
         - {var: consensus_client, want: "lighthouse", layer: "default"}
         - {var: validators, want: [], layer: "default"}
+        - {var: grafana_port, want: 3000, layer: "default"}
         - {var: validator_graffiti, want: "group-graffiti", extra: "extra-graffiti", layer: "group_vars over default"}
         - {var: teku_heap_size, want: "2g", layer: "group_vars over default"}
         - {var: execution_docker_container_name, want: "eth-ansible-execution-1", layer: "fixed role var"}
