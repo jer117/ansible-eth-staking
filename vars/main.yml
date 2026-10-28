@@ -45,6 +45,10 @@ charon_monitoring_port: 3620
 charon_container_name: charon
 charon_relay_address: https://0.relay.obol.tech
 charon_enabled: "true"
+# UID/GID of the "charon" user in the obolnetwork/charon image. /root/.charon is owned by
+# this user so the container can read its key and write the key lock file next to it.
+charon_uid: 1000
+charon_gid: 1000
 
 # Validator client selection (lighthouse or lodestar)
 # This should be set in your secrets file to override the default

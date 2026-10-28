@@ -107,7 +107,7 @@
     restart_policy: unless-stopped
     state: started
     volumes: 
-      - "/root/.charon/validator_keys:/home/charon/validator_keys"
+      - "/root/.charon/validator_keys:/home/charon/validator_keys:ro"
       - "{{ validator_data_mount }}:/opt/data"
     env:
       BEACON_NODE_ADDRESS: "http://{{ charon_container_name }}:{{ charon_validator_api_port }}"

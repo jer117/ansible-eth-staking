@@ -137,6 +137,9 @@ https://api.obol.tech/lock/0xC806E59C8D7CB721F4231582C57CC1EFDC7C43613B0F22A9BE1
 
 # Make sure to load the keys generated above to your server.
 scp -r * root@{server_ip}:/root/.charon/
+# No chmod is needed on the server: the playbook makes /root/.charon owned by the
+# charon container user (UID 1000) with mode 0700 and removes group/other access
+# from everything in it.
 
 ## Validator Client Options
 

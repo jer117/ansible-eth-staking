@@ -1,29 +1,57 @@
 ---
 - name: Check if cluster lock exists
-  become: false
+  become: true
   ansible.builtin.stat:
     path: "/root/.charon/cluster-lock.json"
   register: cluster_lock
 
-- name: Create Charon directory structure
+# Only the charon container user may enter the directory. It must stay writable by that
+# user because charon writes charon-enr-private-key.lock next to the key.
+- name: Create Charon directory
   become: true
   ansible.builtin.file:
     path: "/root/.charon"
-    owner: "root"
-    group: "root"
+    owner: "{{ charon_uid }}"
+    group: "{{ charon_gid }}"
     state: directory
-    mode: "0777"
-    recurse: true
+    mode: "0700"
 
 - name: Copy private key to destination
+  become: true
   ansible.builtin.copy:
     content: "{{ host_charon_enr_private_key }}"
     dest: "/root/.charon/charon-enr-private-key"
-    owner: "root"
-    group: "root"
-    mode: "0666"
+    owner: "{{ charon_uid }}"
+    group: "{{ charon_gid }}"
+    mode: "0400"
   no_log: true
   when: host_charon_enr_private_key is defined
+
+# DKG output is usually copied in as root (cluster lock, deposit data, validator_keys).
+# Hand it to the charon user and drop group/other access. Owner read/write bits are kept,
+# so files charon writes read-only stay read-only. The lock file is skipped because
+# charon recreates it while running.
+- name: Find Charon data files
+  become: true
+  ansible.builtin.find:
+    paths: "/root/.charon"
+    recurse: true
+    file_type: any
+    hidden: true
+    excludes: "charon-enr-private-key.lock"
+  register: charon_data_files
+
+- name: Restrict Charon data files to the charon user
+  become: true
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    owner: "{{ charon_uid }}"
+    group: "{{ charon_gid }}"
+    # Clear group/other bits and file execute bits; owner keeps read/write, dirs keep u+x.
+    mode: "go=,u-x,u+X"
+  loop: "{{ charon_data_files.files }}"
+  loop_control:
+    label: "{{ item.path }}"
 
 - name: Start/Restart the Charon client docker container
   community.general.docker_container:

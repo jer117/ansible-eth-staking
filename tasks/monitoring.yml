@@ -1,12 +1,4 @@
 ---
-- name: Ensure home directory for root exists with correct permissions
-  file:
-    path: /root
-    state: directory
-    owner: root
-    group: root
-    mode: '0755'
-
 - name: Create directory structure for monitoring
   file:
     path: "{{ item }}"

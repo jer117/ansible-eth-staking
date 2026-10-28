@@ -35,6 +35,19 @@
           - "APISIX enabled: {{ apisix_enabled | default(false) }}"
       tags: [always]
 
+    # Keys under /root (e.g. /root/.charon, owned by the charon container's UID 1000, which is
+    # often the host's first login user) must not be reachable by other users. Containers do
+    # not need /root to be traversable to use bind mounts below it.
+    - name: Restrict /root to the root user
+      become: true
+      ansible.builtin.file:
+        path: /root
+        state: directory
+        owner: root
+        group: root
+        mode: "0700"
+      tags: [always]
+
     - name: Create directory structure for home staking role
       become_user: root
       become: true
