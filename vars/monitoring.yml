@@ -25,6 +25,22 @@ node_exporter_port: 9100
 cadvisor_port: 8080
 grafana_port: 3000
 
+# Persistent data, bind-mounted so it survives container recreation
+# (image updates, option changes, `docker rm`). Absolute paths on the host.
+prometheus_data_dir: "/data/prometheus"
+grafana_data_dir: "/data/grafana"
+
+# The upstream images run as these users, so the data dirs must be owned by them.
+prometheus_uid: 65534  # "nobody" in prom/prometheus
+prometheus_gid: 65534
+grafana_uid: 472       # "grafana" in grafana/grafana
+grafana_gid: 0         # grafana/grafana runs with the root group
+
+# Prometheus retention: old data is dropped when either limit is reached.
+# Size needs a unit (e.g. "10GB"); set it to "0" to only limit by time.
+prometheus_retention_time: "30d"
+prometheus_retention_size: "10GB"
+
 # Telegram notifications (optional)
 telegram_enabled: false
 # telegram_bot_token: "YOUR_BOT_TOKEN"
