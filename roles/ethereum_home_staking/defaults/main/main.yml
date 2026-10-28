@@ -6,23 +6,23 @@ consensus_docker_container_name: "eth-ansible-consensus-1"
 validator_docker_container_name: "eth-ansible-validator-1"
 
 # Execution Clients
-# Note: nethermind_image is automatically set based on system architecture detection
-# Override nethermind_image in host_vars if you need a specific image
-nethermind_image: "nethermind/nethermind:1.35.2"  # Fallback/default (will be overridden by architecture detection)
+# nethermind_image picks the amd64 or arm64 image from the host's architecture.
+# Set nethermind_image in host_vars/group_vars to use a specific image.
+nethermind_image: "{{ nethermind_image_arm64 if ansible_architecture == 'aarch64' else nethermind_image_amd64 }}"
 nethermind_image_amd64: "nethermind/nethermind:1.35.3"
 nethermind_image_arm64: "jer117/docker-eth-nethermind:1.35.3"
 
 # Consensus Clients
-# Note: lighthouse_image is automatically set based on system architecture detection
-# Override lighthouse_image in host_vars if you need a specific image
-lighthouse_image: "sigp/lighthouse:v8.0.1"  # Fallback/default (will be overridden by architecture detection)
+# lighthouse_image picks the amd64 or arm64 image from the host's architecture.
+# Set lighthouse_image in host_vars/group_vars to use a specific image.
+lighthouse_image: "{{ lighthouse_image_arm64 if ansible_architecture == 'aarch64' else lighthouse_image_amd64 }}"
 lighthouse_image_amd64: "sigp/lighthouse:v8.0.1"
 lighthouse_image_arm64: "sigp/lighthouse:v8.0.1-arm64"
 
 # Teku consensus client
-# Note: teku_image is automatically set based on system architecture detection
-# Override teku_image in host_vars if you need a specific image
-teku_image: "consensys/teku:25.11"  # Fallback/default (will be overridden by architecture detection)
+# teku_image picks the amd64 or arm64 image from the host's architecture.
+# Set teku_image in host_vars/group_vars to use a specific image.
+teku_image: "{{ teku_image_arm64 if ansible_architecture == 'aarch64' else teku_image_amd64 }}"
 teku_image_amd64: "consensys/teku:25.11"
 teku_image_arm64: "consensys/teku:25.11-arm64"
 
@@ -56,17 +56,18 @@ node_exporter_name: "node-exporter"
 # Cadvisor Vars
 cadvisor_enabled: true
 # renovate: datasource=docker depName=gcr.io/cadvisor/cadvisor versioning=docker
-cadvisor_image: gcr.io/cadvisor/cadvisor:v0.49.1
+cadvisor_image: gcr.io/cadvisor/cadvisor:v0.47.0
 # the default CADVISOR_HEALTHCHECK_URL is "http://localhost:8080/healthz"
 # so match it
 cadvisor_internal_port: 8080
-cadvisor_port: 24165
+cadvisor_port: 8080
 
 # APISIX API Gateway Vars
 apisix_enabled: true
 apisix_image: "apache/apisix:3.14.1-debian"
-# Note: apisix_etcd_image is automatically set based on system architecture detection
-apisix_etcd_image: "bitnamilegacy/etcd:3.4.9"  # Fallback/default (will be overridden by architecture detection)
+# apisix_etcd_image picks the amd64 or arm64 image from the host's architecture.
+# Set apisix_etcd_image in host_vars/group_vars to use a specific image.
+apisix_etcd_image: "{{ apisix_etcd_image_arm64 if ansible_architecture == 'aarch64' else apisix_etcd_image_amd64 }}"
 apisix_etcd_image_amd64: "bitnamilegacy/etcd:3.4.9"
 apisix_etcd_image_arm64: "rancher/coreos-etcd:v3.4.15-arm64"
 apisix_container_name: "eth-ansible-apisix"
@@ -81,7 +82,7 @@ apisix_https_port: 9443
 apisix_prometheus_port: 9091
 
 # APISIX Authentication
-# Override these in your secrets file!
+# Override these in host_vars/<host>.yml (or pass them with -e @secrets.yml)!
 apisix_admin_key: "changeme-admin-key-{{ ansible_hostname }}"
 apisix_api_key: "changeme-api-key-{{ ansible_hostname }}"
 apisix_bearer_token: "changeme-bearer-token-{{ ansible_hostname }}"

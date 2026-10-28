@@ -90,6 +90,46 @@ python3 setup.py
 ansible-playbook -i inventory main.yml
 ```
 
+## Configuration
+
+The playbooks run the `ethereum_home_staking` role. Its defaults are in `roles/ethereum_home_staking/defaults/main/`:
+
+| File             | Contents                                                          |
+|------------------|-------------------------------------------------------------------|
+| `main.yml`       | Container names, client images, directories, cAdvisor, APISIX     |
+| `clients.yml`    | Ports, data mounts, Charon, MEV-Boost, validator and Teku settings |
+| `monitoring.yml` | Monitoring container names, images and ports                      |
+
+These are role defaults, which have the lowest precedence in Ansible, so you don't need to edit them. Set your own values in the inventory instead:
+
+- `host_vars/<host>.yml` for one host. `<host>` is the host's name in the inventory file (the first word on its line), not its `ansible_host` IP.
+- `group_vars/all.yml` or `group_vars/<group>.yml` for several hosts. `host_vars` wins over `group_vars`.
+- `-e name=value` (or `-e @file.yml`) on the command line, which wins over everything.
+
+`main.yml` does not load `secrets.yml`. Pass it with `-e @secrets.yml`, or put its values in `host_vars`.
+
+For example:
+
+```yaml
+# host_vars/<host>.yml
+consensus_client_p2p_port: 9100                    # changes the port mapping and Lighthouse's --port
+eth_ansible_execution_1_p2p_port: 30310            # same for Nethermind
+nethermind_image: "nethermind/nethermind:1.36.0"   # use this image on any architecture
+```
+
+`nethermind_image`, `lighthouse_image`, `teku_image` and `apisix_etcd_image` default to the `_amd64` or `_arm64` variant that matches the host's architecture. Setting one of them directly pins that image. Setting `nethermind_image_arm64` (for example) changes only the arm64 choice.
+
+### Upgrading from older versions
+
+Older versions loaded `defaults/main.yml` and `vars/main.yml` with `include_vars`, which overrides inventory variables. Only `-e` could change those values. Since the move to role defaults:
+
+- If you edited `defaults/main.yml`, `vars/main.yml` or `vars/monitoring.yml`, move your changes to `host_vars` or `group_vars`.
+- Values in your `host_vars` and `group_vars` that used to be ignored now take effect. For example, `mev_boost_enabled` and `charon_enabled`, which `setup.py` writes, used to stay `"true"` whatever you chose. If you set `apisix_api_key`, `apisix_bearer_token` or `apisix_admin_key` in `host_vars`, APISIX has been running with the predictable `changeme-...` placeholder keys, and the next run switches it to your keys. Preview the changes before deploying:
+
+  ```bash
+  ansible-playbook -i inventory main.yml --check --diff
+  ```
+
 # How to generate validator keys.
 - https://hoodi.launchpad.ethereum.org/en/generate-keys
 - https://wagyu.gg/
@@ -170,10 +210,11 @@ Apache APISIX provides secure, authenticated access to your Ethereum node's RPC 
 
 1. **Enable APISIX** in your configuration:
 ```yaml
-# In host_vars/<your-host>.yml or vars/main.yml
-apisix_enabled: true
+# In host_vars/<your-host>.yml (or group_vars/all.yml)
+apisix_enabled: true   # already the default; set to false to skip APISIX
 
-# In secrets.yml - generate secure keys
+# Also in host_vars (vault-encrypt it) or in a file passed with -e @secrets.yml.
+# Generate secure keys; the defaults are predictable placeholders.
 apisix_api_key: "your-secure-api-key"
 apisix_bearer_token: "your-secure-bearer-token"
 apisix_admin_key: "your-secure-admin-key"

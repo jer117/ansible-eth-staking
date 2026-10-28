@@ -46,6 +46,9 @@ charon_container_name: charon
 charon_relay_address: https://0.relay.obol.tech
 charon_enabled: "true"
 
+# Consensus client selection (lighthouse or teku)
+consensus_client: "lighthouse"
+
 # Validator client selection (lighthouse or lodestar)
 # This should be set in your secrets file to override the default
 # validator_client: "lighthouse"

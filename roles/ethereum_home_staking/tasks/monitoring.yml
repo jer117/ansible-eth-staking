@@ -94,7 +94,9 @@
   become_user: root
   become: true
   template:
-    src: prometheus.yml
+    # The deployed config is tasks/prometheus.yml. A bare "prometheus.yml" would
+    # resolve to templates/prometheus.yml first, which is a different file.
+    src: tasks/prometheus.yml
     dest: "{{ host_config_mount }}/prometheus/prometheus.yml"
     force: true
     owner: "root"

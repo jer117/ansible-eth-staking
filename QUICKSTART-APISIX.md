@@ -26,7 +26,7 @@ apisix_admin_key: "your-generated-admin-key-here"
 
 ## 2. Enable APISIX
 
-In your `host_vars/<your-host>.yml` or `vars/main.yml`:
+APISIX is on by default. To set it explicitly, or to turn it off with `false`, use your `host_vars/<your-host>.yml` or `group_vars/all.yml`:
 
 ```yaml
 apisix_enabled: true
@@ -195,5 +195,5 @@ See `README-APISIX.md` for:
 
 - APISIX Documentation: https://apisix.apache.org/docs/apisix/
 - Forward-Auth Plugin: https://apisix.apache.org/docs/apisix/plugins/forward-auth/
-- Ansible Role: See `tasks/apisix.yml` and `templates/apisix-*.j2`
+- Ansible Role: See `roles/ethereum_home_staking/tasks/apisix.yml` and `roles/ethereum_home_staking/templates/apisix-*.j2`
 

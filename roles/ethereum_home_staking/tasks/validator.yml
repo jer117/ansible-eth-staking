@@ -36,11 +36,6 @@
     mode: "0600"
   when: charon_enabled == 'false' and mev_boost_enabled == 'false'
 
-# Set docker ports
-- name: Set validator docker ports
-  ansible.builtin.set_fact:
-    validator_published_ports: "{{ validator_published_ports }}"
-
 - name: Create Lodestar run script
   become: true
   ansible.builtin.template:

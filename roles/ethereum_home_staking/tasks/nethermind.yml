@@ -21,11 +21,6 @@
     mode: "0644"
     remote_src: true
 
-# Set docker ports
-- name: Set execution docker ports
-  ansible.builtin.set_fact:
-    eth_ansible_execution_1_docker_ports: "{{ eth_ansible_execution_1_docker_ports }}"
-
 - name: Pull Nethermind Docker image
   become_user: root
   become: true

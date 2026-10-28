@@ -140,10 +140,10 @@ docker logs --tail 50 eth-ansible-apisix | grep -i error
 
 | File | Purpose |
 |------|---------|
-| `tasks/apisix.yml` | Ansible deployment tasks |
-| `templates/apisix-config.yaml.j2` | APISIX config template |
-| `templates/apisix-routes.yaml.j2` | Routes & auth config |
-| `defaults/main.yml` | Default variables |
+| `roles/ethereum_home_staking/tasks/apisix.yml` | Ansible deployment tasks |
+| `roles/ethereum_home_staking/templates/apisix-config.yaml.j2` | APISIX config template |
+| `roles/ethereum_home_staking/templates/apisix-routes.yaml.j2` | Routes & auth config |
+| `roles/ethereum_home_staking/defaults/main/main.yml` | Default variables |
 | `examples/verify-apisix.sh` | Verification script |
 | `examples/apisix-usage.sh` | Usage examples |
 

@@ -52,7 +52,9 @@ Client Request → APISIX Gateway → Forward Auth Service → Upstream (Netherm
 
 ## Configuration
 
-### Variables (defaults/main.yml)
+### Variables (`roles/ethereum_home_staking/defaults/main/main.yml`)
+
+These are role defaults. Override any of them in `host_vars/<host>.yml`, `group_vars/`, or with `-e`.
 
 ```yaml
 # Enable/Disable APISIX
@@ -119,7 +121,7 @@ curl -H "Authorization: Bearer your-bearer-token" http://<server>:9080/consensus
 ### Enable APISIX in your playbook:
 
 ```yaml
-# main.yml or host_vars
+# host_vars/<host>.yml or group_vars/all.yml (true is already the default)
 apisix_enabled: true
 ```
 
@@ -210,7 +212,7 @@ curl -i -H "X-API-Key: your-api-key" http://<server>:9080/auth/validate
 
 ### Custom Routes
 
-To add custom routes, modify `templates/apisix-routes.yaml.j2` and add new route definitions.
+To add custom routes, modify `roles/ethereum_home_staking/templates/apisix-routes.yaml.j2` and add new route definitions.
 
 ### SSL/TLS
 

@@ -28,7 +28,6 @@
   ansible.builtin.set_fact:
     network: "{{ hostvars[inventory_hostname]['network'] | default(hostvars[inventory_hostname]['NETWORK_NAME']) }}"
     withdrawal_account_address: "{{ hostvars[inventory_hostname]['withdrawal_account_address'] }}"
-    beacon_published_ports: "{{ beacon_published_ports }}"
 
 - name: Debug variables
   ansible.builtin.debug:
@@ -71,8 +70,8 @@
       --http-address "0.0.0.0"
       --http-allow-origin "*"
       --listen-address 0.0.0.0
-      --port {{ consensus_p2p_port | default('9000') }}
-      --quic-port {{ consensus_quic_port | default('9001') }}
+      --port {{ consensus_client_p2p_port }}
+      --quic-port {{ consensus_client_quic_port }}
       --target-peers {{ consensus_target_peers | default('100') }}
       --execution-endpoint http://{{ execution_docker_container_name }}:{{ execution_auth_port }}
       --execution-jwt "/exec_token/token"
