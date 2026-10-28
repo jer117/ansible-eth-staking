@@ -1,10 +1,13 @@
 ---
+# templates/ and files/ next to this playbook are symlinks to the repo-root
+# directories, so tasks/monitoring.yml finds the same templates and dashboards
+# as it does when run from main.yml.
 - name: Set up Ethereum monitoring stack
   hosts: ethereum_nodes
   become: true
   vars_files:
     - ../defaults/main.yml
-    - ../defaults/monitoring.yml
+    - ../vars/monitoring.yml
     - ../vars/main.yml
     - ../secrets.yml
   
