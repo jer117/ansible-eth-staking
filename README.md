@@ -97,9 +97,9 @@ ansible-playbook -i inventory main.yml
 | File | Contents | Override from host_vars / group_vars? |
 |------|----------|---------------------------------------|
 | `roles/ethereum_home_staking/defaults/main.yml` | Images, feature toggles (`mev_boost_enabled`, `charon_enabled`, `apisix_enabled`, ...), paths, tuning | Yes |
-| `roles/ethereum_home_staking/vars/main.yml` | Container names and the ports the containers use to reach each other | No (only with `-e`) |
+| `roles/ethereum_home_staking/vars/main.yml` | Container names and ports: the ones the containers use to reach each other, and the published P2P/RPC port mappings | No (only with `-e`) |
 
-Put your settings in `host_vars/<host>.yml` or `group_vars/<group>.yml` next to your inventory instead of editing the role. Ansible only loads `host_vars/<host>.yml` when `<host>` is the host's name in the inventory; `setup.py` uses the server name for both. If an older `setup.py` named your file after the server IP, rename it to the inventory name. If you keep settings in a separate `secrets.yml`, pass it with `-e @secrets.yml`.
+Put your settings in `host_vars/<host>.yml` or `group_vars/<group>.yml` next to your inventory instead of editing the role. Ansible only loads `host_vars/<host>.yml` when `<host>` is the host's name in the inventory; `setup.py` uses the server name for both. If an older `setup.py` named your file after the server IP, rename it to the inventory name. Keep secrets in that same host_vars file and encrypt it with `ansible-vault` if you like. Don't pass per-host settings with `-e @secrets.yml`: extra vars apply to every host in the run and override everything, including host_vars and the fixed values.
 
 The `*_enabled` toggles accept `"true"`/`"false"` or YAML booleans.
 

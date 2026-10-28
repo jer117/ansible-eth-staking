@@ -2,6 +2,10 @@
 # Group-level overrides of role defaults.
 validator_graffiti: "group-graffiti"
 teku_heap_size: "2g"
-# Per-architecture variant: should flow through the arch-based selection.
+# Per-architecture variants: should flow through the arch-based selection.
+nethermind_image_amd64: "group/nethermind:amd64"
+nethermind_image_arm64: "group/nethermind:arm64"
 lighthouse_image_amd64: "group/lighthouse:test"
 lighthouse_image_arm64: "group/lighthouse:test"
+# Needed to render the monitoring templates.
+IP: "192.0.2.10"

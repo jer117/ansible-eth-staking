@@ -11,7 +11,6 @@
     from_extra: "{{ (precedence_extra_vars | default(false)) and 'extra' in item }}"
     want: "{{ item.extra if from_extra | bool else item.want }}"
     layer: "{{ '-e over everything' if from_extra | bool else item.layer }}"
-    arch_nethermind: "{{ nethermind_image_arm64 if ansible_architecture == 'aarch64' else nethermind_image_amd64 }}"
     checks:
       testhost:
         - {var: nethermind_image, want: "host/nethermind:pinned", layer: "host_vars over default and arch selection"}
@@ -28,10 +27,15 @@
         - {var: execution_docker_container_name, want: "eth-ansible-execution-1", layer: "fixed role var ignores host_vars"}
         - {var: eth_ansible_execution_1_rpc_port, want: 8544, extra: 7777, layer: "fixed role var ignores host_vars, yields to -e"}
       otherhost:
-        - {var: nethermind_image, want: "{{ arch_nethermind }}", layer: "default, chosen by architecture"}
+        - {var: nethermind_image, want: "group/nethermind:amd64", layer: "group_vars per-arch image, x86_64"}
         - {var: mev_boost_enabled, want: "true", layer: "default"}
         - {var: charon_enabled, want: "true", layer: "default"}
+        - {var: consensus_client, want: "lighthouse", layer: "default"}
+        - {var: validators, want: [], layer: "default"}
         - {var: validator_graffiti, want: "group-graffiti", extra: "extra-graffiti", layer: "group_vars over default"}
         - {var: teku_heap_size, want: "2g", layer: "group_vars over default"}
         - {var: execution_docker_container_name, want: "eth-ansible-execution-1", layer: "fixed role var"}
         - {var: eth_ansible_execution_1_rpc_port, want: 8544, extra: 7777, layer: "fixed role var, yields to -e"}
+      armhost:
+        - {var: nethermind_image, want: "group/nethermind:arm64", layer: "group_vars per-arch image, aarch64"}
+        - {var: lighthouse_image, want: "group/lighthouse:test", layer: "group_vars per-arch image, aarch64"}

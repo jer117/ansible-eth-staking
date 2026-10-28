@@ -34,7 +34,6 @@ teku_image_amd64: "consensys/teku:26.10.3"
 teku_image_arm64: "consensys/teku:26.10.3"  # multi-arch; Teku no longer publishes -arm64 tags
 teku_image: "{{ teku_image_arm64 if ansible_architecture == 'aarch64' else teku_image_amd64 }}"
 
-prysm_image: "gcr.io/offchainlabs/prysm/beacon-chain:v7.3.1"
 lodestar_image: "chainsafe/lodestar:v1.50.1"
 charon_docker_image: "obolnetwork/charon:v1.11.2"
 mev_boost_docker_image: "flashbots/mev-boost:1.12.0"
@@ -44,20 +43,12 @@ cadvisor_image: "ghcr.io/google/cadvisor:v0.60.6"
 
 # Directories and mounts
 host_config_mount: ".eth-staking/config"
-scripts_dir: /usr/local/bin
 
 execution_config_mount: /root/.nethermind/exec_token
 execution_data_mount: /data/execution
-execution_data_dir: "/data/execution"
 
 consensus_config_mount: /root/.lighthouse/config
 consensus_data_mount: /data/consensus
-consensus_jwt_secret_mount: /root/.lighthouse/config/exec_token
-consensus_data_dir: "/data/consensus"
-consensus_config_dir: "{{ host_config_mount }}/config/consensus"
-
-docker_config_mount: /root/.nethermind
-docker_data_mount: /data
 
 validator_keys_mount: "/root/.lighthouse/validators"
 validator_data_mount: "/root/.lighthouse/validator-data"
@@ -82,10 +73,8 @@ charon_relay_address: https://0.relay.obol.tech
 
 # Monitoring
 cadvisor_port: 8080   # host port published for cAdvisor
-grafana_admin_password: "{{ GRAFANA_ADMIN_PASSWORD | default('admin') }}"
 prometheus_image: "prom/prometheus:v3.15.1"
 alertmanager_image: "prom/alertmanager:v0.34.1"
-loki_image: "grafana/loki:2.9.0"
 node_exporter_image: "prom/node-exporter:v1.12.1"
 grafana_image: "grafana/grafana:13.3.0"
 # Grafana Agent reached end of life in Nov 2025 (replacement: Grafana Alloy); v0.44.8 is its final release.
@@ -98,9 +87,22 @@ apisix_config_dir: "/root/.eth-staking/config/apisix"
 # Host ports published by APISIX
 apisix_gateway_port: 9080
 apisix_https_port: 9443
-apisix_prometheus_port: 9091
 
 # APISIX client credentials (apisix_api_key, apisix_bearer_token) are deliberately
 # not defined here: when they are unset, tasks/apisix.yml generates random ones
 # under credentials/<host>/apisix/ on the control machine. Set them in host_vars
 # or your secrets to choose your own.
+
+# Not used by any task. Changing these has no effect; they are kept so
+# custom templates that reference them keep working.
+prysm_image: "gcr.io/offchainlabs/prysm/beacon-chain:v7.3.1"
+loki_image: "grafana/loki:2.9.0"
+scripts_dir: /usr/local/bin
+execution_data_dir: "/data/execution"    # the execution data path is execution_data_mount
+consensus_data_dir: "/data/consensus"    # the consensus data path is consensus_data_mount
+consensus_config_dir: "{{ host_config_mount }}/config/consensus"
+consensus_jwt_secret_mount: /root/.lighthouse/config/exec_token
+docker_config_mount: /root/.nethermind
+docker_data_mount: /data
+grafana_admin_password: "{{ GRAFANA_ADMIN_PASSWORD | default('admin') }}"  # Grafana reads GRAFANA_ADMIN_PASSWORD
+apisix_prometheus_port: 9091             # metrics stay inside the Docker network

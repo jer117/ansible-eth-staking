@@ -4,22 +4,36 @@
 #
 # Both plays load the role's variables without running any of its tasks
 # (when: false), then compare the effective values against checks.yml.
+# static_checks.py covers what this can't see (set_fact/include_vars in the
+# role's tasks, string-compared toggles, misplaced templates).
+# The role is found through ./roles, a symlink to the repo's roles/ directory.
 
 - name: Role applied with roles, like main.yml
   hosts: all
+  gather_facts: false
   roles:
-    - role: ../../roles/ethereum_home_staking
+    - role: ethereum_home_staking
       when: false
   tasks:
     - name: Check effective values
       ansible.builtin.include_tasks: checks.yml
 
+    # tasks/monitoring.yml deploys these; make sure each renders to valid YAML.
+    - name: Monitoring configs render to valid YAML
+      ansible.builtin.assert:
+        that: lookup('ansible.builtin.template', templates_dir ~ '/' ~ item) | from_yaml is mapping
+        quiet: true
+      loop: [prometheus.yml, grafana-agent.yml, alertmanager.yml, alert_rules.yml, datasource.yml, dashboard.yml]
+      vars:
+        templates_dir: "{{ playbook_dir }}/roles/ethereum_home_staking/templates"
+
 - name: Role applied with import_role, like playbooks/*.yml
   hosts: all
+  gather_facts: false
   tasks:
     - name: Load the role's variables
       ansible.builtin.import_role:
-        name: ../../roles/ethereum_home_staking
+        name: ethereum_home_staking
         tasks_from: monitoring
       when: false
 

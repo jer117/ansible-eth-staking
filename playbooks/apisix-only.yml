@@ -2,8 +2,9 @@
 # Playbook to deploy only APISIX API Gateway
 # Usage: ansible-playbook -i inventory playbooks/apisix-only.yml
 #
-# Variables come from roles/ethereum_home_staking (imported below, which
-# makes its defaults and vars available to every task in this play).
+# Variables come from roles/ethereum_home_staking (imported below through
+# playbooks/roles, a symlink to ../roles; importing makes its defaults and vars
+# available to every task in this play).
 # Override them in host_vars/ or group_vars/ as for main.yml.
 
 - name: Deploy APISIX API Gateway
@@ -54,7 +55,7 @@
 
     - name: Import APISIX tasks
       ansible.builtin.import_role:
-        name: ../roles/ethereum_home_staking
+        name: ethereum_home_staking
         tasks_from: apisix
       when: apisix_enabled | bool
       tags: [apisix]
