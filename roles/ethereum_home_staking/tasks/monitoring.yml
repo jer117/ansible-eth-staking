@@ -23,6 +23,21 @@
     - "{{ host_config_mount }}/prometheus/rules"
     - "{{ host_config_mount }}/alertmanager"
 
+- name: Create persistent data directories for Prometheus and Grafana
+  become_user: root
+  become: true
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+    mode: "0750"
+  loop:
+    - { path: "{{ prometheus_data_dir }}", owner: "{{ prometheus_uid }}", group: "{{ prometheus_gid }}" }
+    - { path: "{{ grafana_data_dir }}", owner: "{{ grafana_uid }}", group: "{{ grafana_gid }}" }
+  loop_control:
+    label: "{{ item.path }}"
+
 - name: Task Copy datasource config
   become_user: root
   become: true
@@ -163,9 +178,12 @@
       - "9090:9090"
     volumes:
       - "{{ host_config_mount }}/prometheus:/etc/prometheus"
+      - "{{ prometheus_data_dir }}:/prometheus"
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
+      - "--storage.tsdb.retention.time={{ prometheus_retention_time }}"
+      - "--storage.tsdb.retention.size={{ prometheus_retention_size }}"
       - --web.console.libraries=/usr/share/prometheus/console_libraries
       - --web.console.templates=/usr/share/prometheus/consoles
       - --web.enable-lifecycle
@@ -212,5 +230,6 @@
       GF_SECURITY_ADMIN_PASSWORD: "{{ GRAFANA_ADMIN_PASSWORD }}"
       GF_INSTALL_PLUGINS: "grafana-piechart-panel,grafana-clock-panel"
     volumes:
+      - "{{ grafana_data_dir }}:/var/lib/grafana"
       - "{{ host_config_mount }}/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources"
       - "{{ host_config_mount }}/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards"

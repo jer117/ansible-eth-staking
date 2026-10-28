@@ -224,6 +224,39 @@ curl -H "X-API-Key: your-api-key" \
 - **Full Guide**: [README-APISIX.md](README-APISIX.md)
 - **Usage Examples**: [examples/apisix-usage.sh](examples/apisix-usage.sh)
 
+## Monitoring Data
+
+Prometheus metrics and Grafana state (users, preferences, stars, dashboards) are stored on the host, so they survive image updates, config changes and `docker rm`:
+
+| Service    | Host path          | Owned by (container user) |
+|------------|--------------------|---------------------------|
+| Prometheus | `/data/prometheus` | `65534:65534`             |
+| Grafana    | `/data/grafana`    | `472:0`                   |
+
+Paths and Prometheus retention are role defaults in `roles/ethereum_home_staking/defaults/main.yml`; override them in `host_vars/<host>.yml` or `group_vars/<group>.yml`:
+
+```yaml
+prometheus_data_dir: "/data/prometheus"
+grafana_data_dir: "/data/grafana"
+prometheus_retention_time: "30d"   # keep at most 30 days...
+prometheus_retention_size: "10GB"  # ...or 10GB, whichever is hit first ("0" = no size limit)
+```
+
+UI edits to the provisioned dashboards (the "Eth Staking" folder) are kept until a playbook run ships a new version of that dashboard's file, which replaces them. To keep your changes for good, use **Save as** to make your own copy.
+
+**Upgrading from an older version of this role:** the data used to live inside the containers. To keep it, copy it out once before running the playbook (skip this if you don't need the old history):
+
+```bash
+sudo docker stop prometheus grafana
+sudo mkdir -p /data/prometheus /data/grafana
+sudo docker cp prometheus:/prometheus/. /data/prometheus/
+sudo docker cp grafana:/var/lib/grafana/. /data/grafana/
+sudo chown -R 65534:65534 /data/prometheus
+sudo chown -R 472:0 /data/grafana
+```
+
+Earlier container recreations may have left old Prometheus data in unused Docker volumes; `docker volume ls -f dangling=true` lists them.
+
 ## Debugging Commands
 
 ### Check Execution Client Sync Status

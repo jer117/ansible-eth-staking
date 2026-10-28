@@ -80,6 +80,20 @@ grafana_image: "grafana/grafana:13.3.0"
 # Grafana Agent reached end of life in Nov 2025 (replacement: Grafana Alloy); v0.44.8 is its final release.
 grafana_agent_image: "grafana/agent:v0.44.8"
 
+# Persistent monitoring data, bind-mounted so it survives container recreation
+# (image updates, option changes, `docker rm`). Absolute paths on the host.
+prometheus_data_dir: "/data/prometheus"
+grafana_data_dir: "/data/grafana"
+# The images run as these users, so the data dirs must be owned by them.
+prometheus_uid: 65534  # "nobody" in prom/prometheus
+prometheus_gid: 65534
+grafana_uid: 472       # "grafana" in grafana/grafana
+grafana_gid: 0         # grafana/grafana runs with the root group
+# Prometheus retention: old data is dropped when either limit is reached.
+# Size needs a unit (e.g. "10GB"); set it to "0" to only limit by time.
+prometheus_retention_time: "30d"
+prometheus_retention_size: "10GB"
+
 # APISIX API Gateway
 apisix_image: "apache/apisix:3.19.0-debian"
 apisix_config_dir: "/root/.eth-staking/config/apisix"
