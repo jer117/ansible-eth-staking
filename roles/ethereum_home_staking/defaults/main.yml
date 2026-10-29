@@ -77,6 +77,10 @@ prometheus_image: "prom/prometheus:v3.15.1"
 alertmanager_image: "prom/alertmanager:v0.34.1"
 node_exporter_image: "prom/node-exporter:v1.12.1"
 grafana_image: "grafana/grafana:13.3.0"
+# Extra Grafana plugins to install at startup (GF_INSTALL_PLUGINS). The bundled
+# dashboards need none. Grafana 13 stops if an install fails, for example when
+# grafana.com is unreachable.
+grafana_plugins: []
 # Grafana Agent reached end of life in Nov 2025 (replacement: Grafana Alloy); v0.44.8 is its final release.
 grafana_agent_image: "grafana/agent:v0.44.8"
 
