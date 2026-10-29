@@ -172,9 +172,10 @@ With `Authorization: Bearer <token>` the flow is the same; the key matched is th
 
 ```
 ┌────────────────────────────────────────┐
-│  Layer 1: Network Firewall (UFW)       │
+│  Layer 1: Docker port bindings         │
 │  • Only expose ports 9080/9443         │
-│  • Block direct access to 5062, 8544   │
+│  • Docker port 5062 bound to 127.0.0.1 │
+│  • 8544 still public (see note below)  │
 └────────────────────────────────────────┘
                   │
 ┌────────────────────────────────────────┐
@@ -196,6 +197,10 @@ With `Authorization: Bearer <token>` the flow is the same; the key matched is th
 │  • Not directly accessible externally  │
 └────────────────────────────────────────┘
 ```
+
+Layer 1 comes from the Docker port mappings in `vars/main.yml`, not from ufw. Docker publishes container ports with its own iptables rules, which run before ufw's, so `ufw deny` does not block a published port. The beacon API (5062) can't be reached from other machines because `beacon_published_ports` binds it to `127.0.0.1`.
+
+Nethermind's JSON-RPC (8544) is still published on all interfaces by `eth_ansible_execution_1_docker_ports`, so it can be reached from outside the host whatever ufw is set to. To close it, prefix that mapping with `127.0.0.1:`. APISIX reaches Nethermind by container name over the Docker network, so the gateway keeps working.
 
 ## Data Flow Examples
 
