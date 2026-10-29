@@ -159,6 +159,8 @@ Put your settings in `host_vars/<host>.yml` or `group_vars/<group>.yml` next to 
 
 The `*_enabled` toggles accept `"true"`/`"false"` or YAML booleans.
 
+If you run Ansible on the node itself (`ansible_connection=local`), set `host_config_mount: /root/.eth-staking/config` in host_vars. The default is a relative path: over SSH it resolves to the login user's home, but with a local connection it resolves to each playbook's directory, so `main.yml` and `playbooks/monitoring.yml` would write separate copies of the monitoring config.
+
 `tests/precedence/run.sh` checks that host_vars and group_vars override the role defaults.
 
 ## Upgrading from community.docker 3.x
