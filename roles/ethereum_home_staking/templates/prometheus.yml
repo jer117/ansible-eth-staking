@@ -28,7 +28,9 @@ scrape_configs:
     static_configs:
       - targets: ['grafana_agent:{{ grafana_agent_http_port }}']  # Adjust if necessary
 
+{% if charon_enabled | bool %}
   - job_name: 'charon-local'
     static_configs:
       - targets: ['charon:{{ charon_monitoring_port }}']
     metrics_path: '/metrics'
+{% endif %}
