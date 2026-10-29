@@ -28,6 +28,8 @@ cadvisor_name: "cadvisor"
 grafana_name: "grafana"
 
 # Execution client ports
+# Nethermind uses this port for P2P over TCP and for discovery over UDP
+# (--Network.P2PPort and --Network.DiscoveryPort in tasks/nethermind.yml).
 eth_ansible_execution_1_p2p_port: 30304
 eth_ansible_execution_1_engine_port: 8552
 eth_ansible_execution_1_rpc_port: 8544
@@ -39,14 +41,17 @@ letsencrypt_port: 80
 # Consensus client ports
 consensus_monitoring_port: 8081
 consensus_client_http_api_port: 5062
-consensus_client_p2p_port: 9000
-consensus_client_quic_port: 9001
+consensus_client_p2p_port: 9000   # libp2p over TCP + discv5 discovery over UDP
+consensus_client_quic_port: 9001  # libp2p QUIC over UDP (Lighthouse)
 
 # Validator client ports
 validator_client_http_api_port: 5064
 validator_monitoring_port: 8009
 
 # Charon ports
+# Charon's libp2p listens on TCP only. Its QUIC transport is an alpha feature
+# (off by default up to at least v1.11) and only binds UDP when
+# --p2p-udp-address is set, so no UDP port is published for Charon.
 charon_p2p_tcp_port: 3610
 charon_validator_api_port: 3600
 charon_monitoring_port: 3620
@@ -68,15 +73,23 @@ node_exporter_port: 9100
 grafana_port: 3000
 
 # Published port mappings built from the ports above
+# Docker publishes TCP only unless a mapping ends in /udp, so the P2P port is
+# listed twice: TCP for devp2p connections and UDP for peer discovery.
 eth_ansible_execution_1_docker_ports:
-  - "{{ eth_ansible_execution_1_p2p_port }}:{{ eth_ansible_execution_1_p2p_port }}"
+  - "{{ eth_ansible_execution_1_p2p_port }}:{{ eth_ansible_execution_1_p2p_port }}/tcp"
+  - "{{ eth_ansible_execution_1_p2p_port }}:{{ eth_ansible_execution_1_p2p_port }}/udp"
   - "{{ eth_ansible_execution_1_rpc_port }}:{{ eth_ansible_execution_1_rpc_port }}"
   - "{{ eth_ansible_execution_1_engine_port }}:{{ eth_ansible_execution_1_engine_port }}"
 
+# Lighthouse listens on P2P TCP, discovery UDP (same port) and QUIC UDP.
+# Teku listens on P2P TCP and discovery UDP; Teku 26.7+ (the pinned version is
+# newer) also enables QUIC on UDP 9001 by default. consensus_client_quic_port is
+# not passed to Teku, because Teku 25.x rejected the --p2p-quic-port flag.
 beacon_published_ports:
   - "127.0.0.1:{{ consensus_client_http_api_port }}:{{ consensus_client_http_api_port }}"
-  - "{{ consensus_client_quic_port }}:{{ consensus_client_quic_port }}"
-  - "{{ consensus_client_p2p_port }}:{{ consensus_client_p2p_port }}"
+  - "{{ consensus_client_p2p_port }}:{{ consensus_client_p2p_port }}/tcp"
+  - "{{ consensus_client_p2p_port }}:{{ consensus_client_p2p_port }}/udp"
+  - "{{ consensus_client_quic_port }}:{{ consensus_client_quic_port }}/udp"
 
 validator_published_ports:
   - 127.0.0.1:{{ validator_client_http_api_port }}:{{ validator_client_http_api_port }}

@@ -52,7 +52,7 @@
       --p2p-external-hostname {{ inventory_hostname }}
       --p2p-external-ip {{ ansible_default_ipv4.address }}
     published_ports:
-      - "{{ charon_p2p_tcp_port }}:{{ charon_p2p_tcp_port }}"
+      - "{{ charon_p2p_tcp_port }}:{{ charon_p2p_tcp_port }}/tcp"
       - 127.0.0.1:{{ charon_monitoring_port }}:{{ charon_monitoring_port }}
     restart_policy: always
     state: started

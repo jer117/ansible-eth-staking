@@ -20,7 +20,25 @@ Ansible role for eth home stakers.
 
 ## Firewall Configuration
 
-Configure UFW (Uncomplicated Firewall) to secure your staking node:
+### Required inbound ports
+
+These are the peer-to-peer ports. Allow them on the host firewall, and forward them on your router if the node is behind NAT. Without the UDP ports, the clients can't be discovered by other peers and end up with fewer peers.
+
+| Port  | Protocol | Client                        | Purpose                          | Variable in `roles/ethereum_home_staking/vars/main.yml` |
+|-------|----------|-------------------------------|----------------------------------|------------------------------------|
+| 30304 | TCP      | Nethermind                    | Peer connections (devp2p)        | `eth_ansible_execution_1_p2p_port` |
+| 30304 | UDP      | Nethermind                    | Peer discovery (discv4/discv5)   | `eth_ansible_execution_1_p2p_port` |
+| 9000  | TCP      | Lighthouse, Teku              | Peer connections (libp2p)        | `consensus_client_p2p_port`        |
+| 9000  | UDP      | Lighthouse, Teku              | Peer discovery (discv5)          | `consensus_client_p2p_port`        |
+| 9001  | UDP      | Lighthouse (and Teku 26.7+)   | Peer connections over QUIC       | `consensus_client_quic_port`       |
+| 3610  | TCP      | Charon (if `charon_enabled`)  | Connections to other cluster nodes | `charon_p2p_tcp_port`            |
+
+These were checked against Nethermind 1.35.3, Lighthouse v8.0.1, Teku 25.11 and Charon v1.7.1. The role now pins newer versions (see `roles/ethereum_home_staking/defaults/main.yml`):
+
+- Teku 25.11 did not use QUIC. Teku 26.7 and later, which includes the pinned version, enable QUIC on UDP 9001 by default, so 9001/udp matters for both consensus clients.
+- Charon only needs TCP. Its QUIC transport is an alpha feature that is off by default, and it only listens on UDP if `--p2p-udp-address` is set.
+
+To change a port, edit `roles/ethereum_home_staking/vars/main.yml` or pass it with `-e` (for example `-e consensus_client_p2p_port=9100`). Setting it in `host_vars` has no effect: ports are fixed role vars, which take precedence over inventory variables (see [Configuration](#configuration)).
 
 ```bash
 # Reset UFW to default
@@ -33,20 +51,21 @@ sudo ufw default allow outgoing
 # Allow SSH
 sudo ufw allow 22/tcp
 
-# Ethereum execution client
-sudo ufw allow 8545/tcp  # JSON-RPC API
-sudo ufw allow 8551/tcp  # Engine API
-sudo ufw allow 30303/tcp # P2P communication
+# Execution client (Nethermind) P2P
+sudo ufw allow 30304/tcp  # Peer connections
+sudo ufw allow 30304/udp  # Peer discovery
+
+# Consensus client (Lighthouse / Teku) P2P
+sudo ufw allow 9000/tcp   # Peer connections
+sudo ufw allow 9000/udp   # Peer discovery
+sudo ufw allow 9001/udp   # QUIC
+
+# Charon distributed validator (only if charon_enabled)
+sudo ufw allow 3610/tcp
 
 # APISIX API Gateway (optional)
 sudo ufw allow 9080/tcp  # APISIX Gateway
 sudo ufw allow 9443/tcp  # APISIX HTTPS
-
-# Monitoring and Management
-sudo ufw allow 3000/tcp  # Grafana and Semaphore UI
-sudo ufw allow 9090/tcp  # Prometheus
-sudo ufw allow 24165/tcp # cAdvisor
-sudo ufw allow 9093/tcp  # AlertManager
 
 # Enable UFW
 sudo ufw enable
@@ -54,6 +73,42 @@ sudo ufw enable
 # Verify rules
 sudo ufw status verbose
 ```
+
+After deploying, check that Docker publishes both protocols:
+
+```bash
+docker port eth-ansible-execution-1   # expect 30304/tcp and 30304/udp
+docker port eth-ansible-consensus-1   # expect 9000/tcp, 9000/udp and 9001/udp
+```
+
+### Docker bypasses ufw
+
+Docker publishes container ports with its own iptables rules, which handle the traffic before ufw's rules see it. A port that Docker publishes on all interfaces is reachable from outside even if ufw denies it, and `ufw status` does not show it. The ufw rules above record which ports are meant to be open, but Docker opens the published ports either way. The reverse is also true: `ufw deny` does not close a Docker-published port.
+
+Ports this role publishes on all interfaces:
+
+| Port(s)                                     | Service                                      | Meant to be public? |
+|---------------------------------------------|----------------------------------------------|---------------------|
+| 30304 tcp/udp, 9000 tcp/udp, 9001 udp, 3610 tcp | P2P (see above)                          | Yes |
+| 8544/tcp                                    | Nethermind JSON-RPC (`admin` and `debug` modules enabled) | No |
+| 8552/tcp                                    | Nethermind Engine API (JWT-protected; the beacon node reaches it over the Docker network) | No |
+| 9080, 9443/tcp                              | APISIX gateway and HTTPS (if `apisix_enabled`) | Yes |
+| 3001, 9090, 9093, 8080/tcp                  | Grafana, Prometheus, Alertmanager, cAdvisor (`cadvisor_port`) | No |
+
+The beacon API (5062), validator API (5064) and metrics (8009), Charon monitoring (3620), node exporter (9100) and Grafana Agent (12345) are bound to `127.0.0.1` and are not reachable from outside.
+
+To keep a published port private, either:
+
+1. Bind it to localhost by prefixing the mapping with `127.0.0.1:` in `roles/ethereum_home_staking/vars/main.yml`, as the beacon API mapping already does. Anything that reaches the service over the Docker network (APISIX, Prometheus, the beacon node) keeps working.
+2. Or drop outside traffic in the `DOCKER-USER` chain, which Docker evaluates before its own rules. Match on the original destination port, because Docker has already rewritten the destination by the time the packet reaches this chain:
+
+   ```bash
+   # Replace eth0 with your internet-facing interface
+   sudo iptables -I DOCKER-USER -i eth0 -p tcp -m conntrack --ctorigdstport 8544 --ctdir ORIGINAL -j DROP
+   sudo iptables -I DOCKER-USER -i eth0 -p tcp -m conntrack --ctorigdstport 8552 --ctdir ORIGINAL -j DROP
+   ```
+
+   These rules do not persist across reboots, so re-apply them at boot.
 
 ## Quick Start
 
