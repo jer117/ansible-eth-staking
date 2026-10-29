@@ -27,6 +27,12 @@ node_exporter_name: "node-exporter"
 cadvisor_name: "cadvisor"
 grafana_name: "grafana"
 
+# Named Docker volumes that keep monitoring data when a container is recreated.
+# Renaming one would start that service with an empty volume.
+prometheus_data_volume: "prometheus-data"
+alertmanager_data_volume: "alertmanager-data"
+grafana_data_volume: "grafana-data"
+
 # Execution client ports
 # Nethermind uses this port for P2P over TCP and for discovery over UDP
 # (--Network.P2PPort and --Network.DiscoveryPort in tasks/nethermind.yml).

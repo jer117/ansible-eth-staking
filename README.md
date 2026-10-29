@@ -15,8 +15,9 @@ Ansible role for eth home stakers.
 
 ## Prerequisites
 
-- Ansible 2.10+ on control machine
+- ansible-core 2.17+ on the control machine (required by community.docker 5.x; `pip install -r requirements.txt` installs a recent version)
 - Target hosts with Docker, SSH access, and sufficient resources (4+ CPU cores, 8+ GB RAM)
+- Python 3.9+ on target hosts when using ansible-core 2.20 or newer. Ubuntu 20.04 ships Python 3.8, so for those hosts use ansible-core 2.17–2.19.
 
 ## Firewall Configuration
 
@@ -160,6 +161,21 @@ The `*_enabled` toggles accept `"true"`/`"false"` or YAML booleans.
 
 `tests/precedence/run.sh` checks that host_vars and group_vars override the role defaults.
 
+## Upgrading from community.docker 3.x
+
+`requirements.yml` pins community.docker 5.4.0. The 3.x releases fail on hosts with current Python packages (requests 2.32+, urllib3 2.x) with errors such as `Not supported URL scheme http+docker`. Update the collection on the control machine:
+
+```bash
+pip install -r requirements.txt
+ansible-galaxy collection install -r requirements.yml --force
+```
+
+What changes on the first run after upgrading:
+
+- Prometheus, Alertmanager and Grafana keep their data in named Docker volumes (`prometheus-data`, `alertmanager-data`, `grafana-data`). On the first run the playbook stops these containers, copies their existing data into the volumes, and recreates them. The old anonymous volumes are left in place; remove them with `docker volume prune` once your dashboards and history look right.
+- Grafana now keeps its database, so `GRAFANA_ADMIN_PASSWORD` only applies when the `grafana-data` volume is first created. To change the password later, use the Grafana UI or `docker exec grafana grafana cli admin reset-admin-password <new-password>`.
+- A container is recreated whenever its `image:` value changes, even if the new name points to the same image ID (`image_name_mismatch: recreate`, the default since community.docker 4.0.0). With 3.x such a rename was ignored.
+
 # How to generate validator keys.
 - https://hoodi.launchpad.ethereum.org/en/generate-keys
 - https://wagyu.gg/
@@ -207,6 +223,7 @@ https://api.obol.tech/lock/0xC806E59C8D7CB721F4231582C57CC1EFDC7C43613B0F22A9BE1
 
 # Make sure to load the keys generated above to your server.
 scp -r * root@{server_ip}:/root/.charon/
+```
 
 ## Validator Client Options
 
@@ -333,6 +350,7 @@ cd
 
 # Clean up db and tokens then re run the role.
 docker stop eth-ansible-consensus-1 eth-ansible-execution-1 && docker rm eth-ansible-execution-1 eth-ansible-consensus-1 && sudo rm -rf .lighthouse/ .nethermind/
+```
 
 # Common Errors and Solutions
 
@@ -348,4 +366,28 @@ docker stop eth-ansible-consensus-1 eth-ansible-execution-1 && docker rm eth-ans
 cd ~/.charon && docker stop charon && sudo rm -rf charon-enr-private-key.lock && docker restart charon
 ```
 
-```
+## References
+
+### Core Ethereum Documentation
+- [Ethereum Developer Documentation](https://ethereum.org/en/developers/docs/)
+- [Ethereum Staking Documentation](https://ethereum.org/en/staking/)
+
+### Client Documentation
+- [Prysm Client Documentation](https://docs.prylabs.network/docs/getting-started)
+- [Lighthouse Client Documentation](https://lighthouse-book.sigmaprime.io/)
+- [Teku Client Documentation](https://docs.teku.consensys.net/)
+- [Nimbus Client Documentation](https://nimbus.guide/)
+
+### Reference Implementations
+- [Eth Docker - Reference Docker Implementation](https://github.com/eth-educators/eth-docker)
+- [Nethermind Docker Image](https://github.com/nethermindeth/docker-eth-nethermind)
+- [Lighthouse Docker Image](https://github.com/sigp/lighthouse)
+
+### Infrastructure & Tools
+- [Docker Compose Documentation](https://docs.docker.com/compose/)
+- [Grafana Documentation](https://grafana.com/docs/)
+- [Prometheus Documentation](https://prometheus.io/docs/)
+
+### Security & Best Practices
+- [Ethereum Security Best Practices](https://ethereum.org/en/security/)
+- [Docker Security Documentation](https://docs.docker.com/engine/security/)
