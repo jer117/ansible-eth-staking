@@ -23,6 +23,33 @@
     - "{{ host_config_mount }}/prometheus/rules"
     - "{{ host_config_mount }}/alertmanager"
 
+# The file module gives every parent it creates the owner, group and mode of the
+# target. Without these two tasks, a host with no /data (monitoring.yml run
+# first, or a data dir under a new path) gets /data owned by 65534 with mode 0750.
+# Missing parents are created as root:root 0755; existing ones, which may be a
+# user's own mount point, are left as they are.
+- name: Check parents of the persistent data directories
+  become_user: root
+  become: true
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  loop: "{{ [prometheus_data_dir, alertmanager_data_dir, grafana_data_dir] | map('dirname') | unique }}"
+  register: monitoring_data_parents
+
+- name: Create missing parents of the persistent data directories
+  become_user: root
+  become: true
+  ansible.builtin.file:
+    path: "{{ item.item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop: "{{ monitoring_data_parents.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+  when: not item.stat.exists
+
 - name: Create persistent data directories for Prometheus, Alertmanager and Grafana
   become_user: root
   become: true
