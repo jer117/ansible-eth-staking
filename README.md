@@ -78,7 +78,7 @@ sudo ufw status verbose
 After deploying, check that Docker publishes both protocols:
 
 ```bash
-docker port eth-ansible-execution-1   # expect 30304/tcp and 30304/udp
+docker port eth-ansible-execution-1   # expect 30304/tcp and 30304/udp on 0.0.0.0, 8544/tcp and 8552/tcp on 127.0.0.1
 docker port eth-ansible-consensus-1   # expect 9000/tcp, 9000/udp and 9001/udp
 ```
 
@@ -91,22 +91,22 @@ Ports this role publishes on all interfaces:
 | Port(s)                                     | Service                                      | Meant to be public? |
 |---------------------------------------------|----------------------------------------------|---------------------|
 | 30304 tcp/udp, 9000 tcp/udp, 9001 udp, 3610 tcp | P2P (see above)                          | Yes |
-| 8544/tcp                                    | Nethermind JSON-RPC (`admin` and `debug` modules enabled) | No |
-| 8552/tcp                                    | Nethermind Engine API (JWT-protected; the beacon node reaches it over the Docker network) | No |
 | 9080, 9443/tcp                              | APISIX gateway and HTTPS (if `apisix_enabled`) | Yes |
 | 3001, 9090, 9093, 8080/tcp                  | Grafana, Prometheus, Alertmanager, cAdvisor (`cadvisor_port`) | No |
 
-The beacon API (5062), validator API (5064) and metrics (8009), Charon monitoring (3620), node exporter (9100) and Grafana Agent (12345) are bound to `127.0.0.1` and are not reachable from outside.
+The Nethermind JSON-RPC (8544) and Engine API (8552), beacon API (5062), validator API (5064) and metrics (8009), Charon monitoring (3620), node exporter (9100) and Grafana Agent (12345) are bound to `127.0.0.1` and are not reachable from outside. The beacon node reaches the Engine API, and APISIX reaches the JSON-RPC, by container name over the `eth-staking-network-net` Docker network, so the localhost binding doesn't affect them.
+
+If you need the JSON-RPC from another machine, use the [APISIX gateway](#apisix-api-gateway-optional) (`http://<server>:9080/execution/`) instead of publishing 8544. The gateway requires an API key or bearer token, but it forwards every JSON-RPC method, `admin` and `debug` included, so treat the key like a password. The Engine API has no gateway route; only the beacon node should call it.
 
 To keep a published port private, either:
 
-1. Bind it to localhost by prefixing the mapping with `127.0.0.1:` in `roles/ethereum_home_staking/vars/main.yml`, as the beacon API mapping already does. Anything that reaches the service over the Docker network (APISIX, Prometheus, the beacon node) keeps working.
+1. Bind it to localhost by prefixing the mapping with `127.0.0.1:` in `roles/ethereum_home_staking/vars/main.yml`, as the beacon API and Nethermind RPC and Engine API mappings do. Anything that reaches the service over the Docker network (APISIX, Prometheus, the beacon node) keeps working.
 2. Or drop outside traffic in the `DOCKER-USER` chain, which Docker evaluates before its own rules. Match on the original destination port, because Docker has already rewritten the destination by the time the packet reaches this chain:
 
    ```bash
-   # Replace eth0 with your internet-facing interface
-   sudo iptables -I DOCKER-USER -i eth0 -p tcp -m conntrack --ctorigdstport 8544 --ctdir ORIGINAL -j DROP
-   sudo iptables -I DOCKER-USER -i eth0 -p tcp -m conntrack --ctorigdstport 8552 --ctdir ORIGINAL -j DROP
+   # Replace eth0 with your internet-facing interface. Example: Prometheus and Alertmanager
+   sudo iptables -I DOCKER-USER -i eth0 -p tcp -m conntrack --ctorigdstport 9090 --ctdir ORIGINAL -j DROP
+   sudo iptables -I DOCKER-USER -i eth0 -p tcp -m conntrack --ctorigdstport 9093 --ctdir ORIGINAL -j DROP
    ```
 
    These rules do not persist across reboots, so re-apply them at boot.
@@ -299,6 +299,9 @@ curl -H "X-API-Key: your-api-key" \
 ## Debugging Commands
 
 ### Check Execution Client Sync Status
+
+Run these on the node itself, because 8544 is bound to `127.0.0.1`. From another machine, use the APISIX gateway's `/execution/` route instead.
+
 ```bash
 # Check if execution client is syncing
 curl -X POST -H "Content-Type: application/json" --data '{"jsonrpc":"2.0","method":"eth_syncing","params":[],"id":1}' http://localhost:8544
