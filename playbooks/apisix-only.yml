@@ -29,22 +29,16 @@
           - "Consensus Container: {{ consensus_docker_container_name }}"
       tags: [always]
 
-    - name: Ensure pip is installed
+    # The community.docker modules only need the requests library on the target.
+    # Install it from the OS packages: Ubuntu 24.04 refuses system-wide pip installs
+    # (PEP 668, "externally-managed-environment").
+    - name: Install Python requests for the Docker modules
       become: true
-      ansible.builtin.package:
-        name:
-          - python3-pip
+      ansible.builtin.apt:
+        name: python3-requests
         state: present
-      tags: [always]
-      ignore_errors: true
-
-    - name: Install Python dependencies for Docker modules
-      become: true
-      ansible.builtin.pip:
-        name:
-          - requests
-          - docker
-        state: present
+        update_cache: true
+        cache_valid_time: 86400
       tags: [always]
 
     - name: Create Docker network
